@@ -6,6 +6,7 @@ kind = "recipe"
 title = "game server panel (TypeScript panel, Rust node agent, containerd), the web page"
 title_de = "Spieleserver-Panel (TypeScript-Panel, Rust-Agent auf dem Node, containerd), die Webseite"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = ["docker"]
 uses = []

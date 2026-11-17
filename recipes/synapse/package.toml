@@ -6,6 +6,7 @@ kind = "recipe"
 title = "your own Matrix chat server (Element Synapse), with PostgreSQL"
 title_de = "ein eigener Matrix-Chatserver (Element Synapse), mit PostgreSQL"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = []
 uses = []

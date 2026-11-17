@@ -6,6 +6,7 @@ kind = "recipe"
 title = "keeps your music in order: searches albums, sends the download to SABnzbd, files it in the library"
 title_de = "hält deine Musik in Ordnung: sucht Alben, schickt den Download an SABnzbd, legt ihn in der Bibliothek ab"
 requires_core = ">=6"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares"]
 audience = "generic"
 needs = ["docker", "share"]
 uses = []

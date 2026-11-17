@@ -6,6 +6,7 @@ kind = "recipe"
 title = "watch your films, series and music in the browser, on the TV and on the phone"
 title_de = "Filme, Serien und Musik im Browser, auf dem Fernseher und auf dem Handy ansehen"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares", "devices:gpu"]
 audience = "generic"
 needs = ["share"]
 uses = ["gpu"]

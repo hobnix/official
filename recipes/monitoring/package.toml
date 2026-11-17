@@ -6,6 +6,7 @@ kind = "recipe"
 title = "history of load, disks, pools, containers, and the server's logs"
 title_de = "Verlauf von Last, Platten, Pools, Containern und die Logs des Servers"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = []
 uses = []

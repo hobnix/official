@@ -6,6 +6,7 @@ kind = "recipe"
 title = "Radarr, Sonarr, Seerr, the duplicate cleanup and SABnzbd post their events to a Matrix room (needs Synapse)"
 title_de = "Radarr, Sonarr, Seerr, die Bereinigung doppelter Filme und SABnzbd melden ihre Ereignisse in einem Matrix-Raum (braucht Synapse)"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = []
 uses = []

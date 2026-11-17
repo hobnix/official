@@ -6,6 +6,7 @@ kind = "recipe"
 title = "game servers with a web panel (Panel and Wings, two containers)"
 title_de = "Spieleserver mit einem Web-Panel (Panel und Wings, zwei Container)"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares"]
 audience = "personal"
 needs = ["docker", "share"]
 uses = []

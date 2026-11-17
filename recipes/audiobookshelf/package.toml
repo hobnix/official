@@ -5,6 +5,7 @@ kind = "recipe"
 title = "streams your audiobooks and podcasts to phones and browsers, remembers where you stopped"
 title_de = "streamt deine Hörbücher und Podcasts auf Handy und Browser und merkt sich, wo du aufgehört hast"
 requires_core = ">=6"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares"]
 audience = "generic"
 needs = ["docker", "share"]
 uses = []
