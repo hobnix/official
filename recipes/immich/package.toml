@@ -6,6 +6,7 @@ kind = "recipe"
 title = "your own photo and video library with phone backup, like Google Photos"
 title_de = "deine eigene Foto- und Videosammlung mit Handy-Sicherung, wie Google Fotos"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares", "devices:gpu"]
 audience = "generic"
 needs = ["docker", "share"]
 uses = ["gpu"]

@@ -6,6 +6,7 @@ kind = "recipe"
 title = "holds your Usenet indexers and hands them to Radarr, Sonarr and Lidarr"
 title_de = "verwaltet deine Usenet-Indexer und gibt sie an Radarr, Sonarr und Lidarr weiter"
 requires_core = ">=6"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = ["docker"]
 uses = []

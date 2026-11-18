@@ -6,6 +6,7 @@ kind = "recipe"
 title = "Home Assistant, smart home control in its own virtual machine (Home Assistant OS)"
 title_de = "Home Assistant, Smart-Home-Steuerung in einer eigenen virtuellen Maschine (Home Assistant OS)"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = []
 uses = []

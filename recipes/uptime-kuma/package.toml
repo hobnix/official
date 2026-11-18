@@ -6,6 +6,7 @@ kind = "recipe"
 title = "checks that your services answer, keeps a history and warns when one is down"
 title_de = "prüft, ob deine Dienste antworten, führt einen Verlauf und warnt, wenn einer ausfällt"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = []
 uses = []

@@ -6,6 +6,7 @@ kind = "recipe"
 title = "runs the game servers of the Catalyst panel (containerd and the Rust agent)"
 title_de = "führt die Spieleserver des Catalyst-Panels aus (containerd und der Rust-Agent)"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet"]
 audience = "generic"
 needs = []
 uses = []

@@ -6,6 +6,7 @@ kind = "recipe"
 title = "converts the films once, so Jellyfin starts them at once (extra AC3 audio, old formats to H.264)"
 title_de = "wandelt die Filme einmalig um, damit Jellyfin sie sofort startet (zusätzliche AC3-Tonspur, alte Formate zu H.264)"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares", "devices:gpu"]
 audience = "generic"
 needs = ["docker", "share"]
 uses = ["gpu"]

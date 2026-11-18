@@ -6,6 +6,7 @@ kind = "recipe"
 title = "your own mail server (SMTP, IMAP, JMAP, CalDAV/CardDAV) with a web admin page"
 title_de = "ein eigener Mailserver (SMTP, IMAP, JMAP, CalDAV/CardDAV) mit Web-Verwaltung"
 requires_core = ">=1"
+permissions = ["host:incus", "net:internet", "host:tailscale"]
 audience = "personal"
 needs = ["tailscale"]
 uses = []
