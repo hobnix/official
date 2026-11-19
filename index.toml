@@ -140,7 +140,7 @@ requires_core = ">=1"
 audience = "personal"
 
 [package.maintainerr]
-version = "1.1.1"
+version = "1.2.0"
 kind = "recipe"
 path = "recipes/maintainerr"
 title = "cleans up unwatched films and series by rules you write (it has none at first, deletes nothing)"
@@ -222,7 +222,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.sabnzbd]
-version = "1.1.0"
+version = "1.2.0"
 kind = "recipe"
 path = "recipes/sabnzbd"
 title = "the Usenet downloader that Radarr and Sonarr send their downloads to"
