@@ -190,7 +190,7 @@ requires_core = ">=1"
 audience = "personal"
 
 [package.prowlarr]
-version = "1.1.0"
+version = "1.1.1"
 kind = "recipe"
 path = "recipes/prowlarr"
 title = "holds your Usenet indexers and hands them to Radarr, Sonarr and Lidarr"
