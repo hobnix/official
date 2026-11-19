@@ -54,16 +54,14 @@ sudo hs recipe sonarr
 Then, if you want them, `lidarr`, `bazarr`, `maintainerr` and `seerr`. Each recipe prints the address of its web page at the end. These pages are admin pages for the home network: never give them a public route. Radarr, Sonarr, Lidarr and Prowlarr ask you to create a login on first open (method Forms); do that straight away.
 
 ### Where the apps run: own container or Docker
-`radarr`, `sonarr`, `lidarr`, `prowlarr`, `bazarr` and `maintainerr` can run in one of two places; the recipe asks "Where it runs" (`RUNS`, `lxc` or `docker`):
+`radarr`, `sonarr`, `lidarr`, `prowlarr`, `bazarr`, `maintainerr`, `seerr`, `sabnzbd` and `jellyfin` can run in one of two places; the recipe asks "Where it runs" (`RUNS`, `lxc` or `docker`):
 - `lxc`: a container of its own with the app's name and Docker inside. An app that is installed this way stays there.
 - `docker`: the app is a compose project inside the one container `docker` (turned on with `sudo hs docker enable`, see [Docker](containers-and-apps.md)), in the share `apps`. A new install proposes `docker` when Docker is on.
 
 What is different in the `docker` mode:
 - All film apps in `docker` share one user `media`, and the share `media` is mounted once into the container `docker` at `/media`. Mounting restarts `docker` and every app in it, so when other apps already run there the recipe stops and prints the exact `hs docker mount ...` command. Run it when it suits you, then run the recipe again.
 - The ports are fixed, so a second copy of a recipe (`--name`) in `docker` mode stops at the port check. Use the `lxc` mode for a second copy.
-- Moving an app between the modes is not automated: back up in the app (**System > Backup**), install the recipe in the other mode, restore there.
-
-Not tested on hardware yet: the `docker` mode.
+- Moving an app between the modes is not automated: back up in the app (**System > Backup**), install the recipe in the other mode, restore there. Not tested on hardware yet: the `docker` mode of Seerr, SABnzbd and Jellyfin.
 
 ### Notifications and backup
 - The film apps share one ntfy topic of their own; `radarr`, `sonarr` and `lidarr` print it (also in `/var/lib/hs/media-ntfy`). Subscribe in the ntfy app, then add it in each app under **Settings > Connect > ntfy**. It is separate from the topic of the server's alarms on purpose.
@@ -94,8 +92,7 @@ Cost: MakeMKV is free while in beta, but its registration key is valid only abou
 
 Tips:
 - Under **File > Preferences > Video** set the minimum title length to 1200 seconds: menus, trailers and ads are then not listed.
-- A series DVD has one title per episode (30 to 60 minutes): tick them all and MakeMKV numbers them.
-- Read errors are almost always scratches or dirt: wipe the disc with a soft cloth from the centre outwards and try again, or try another drive.
+- A series DVD has one title per episode: tick them all. Read errors are almost always scratches or dirt: wipe the disc and try again.
 - MakeMKV bypasses the copy protection automatically. In some countries this is illegal even for private copies of your own discs (in Germany, section 95a of the copyright act). It is your decision and responsibility: copy only discs you own and do not pass the files on.
 
 ## Name the files and put them on the server
@@ -116,6 +113,19 @@ The share `media` is read-only for Jellyfin but writable for you over the networ
 The [Tdarr plugin](tdarr.md) adds an AC3 audio track to films that have only TrueHD or DTS sound, so TVs and browsers play them. A DVD's picture is MPEG-2; the plugin turns it into H.264 (smaller, no visible difference), which takes a few minutes to half an hour per film. Blu-ray pictures stay unchanged.
 
 You can skip: Handbrake (MakeMKV plus Tdarr replace it; re-encoding a 30 GB Blu-ray to 8 to 10 GB with H.265 saves space but costs quality and time, and is not needed) and ISO images (the `.mkv` is enough to play; keep the discs as your backup).
+
+## Run it in Docker
+Jellyfin can run as an app in the container `docker` too (`RUNS=docker`; see the overview above). The compose file is in `recipes/jellyfin` in the share `apps` (mounted at `/shares/apps` in `docker`; users and posters in `recipes/jellyfin/config`). There is no container `jellyfin`; Jellyfin reads `/media` read-only. The Abyss theme is only set up in the `lxc` mode; in Docker add it under **Dashboard > Branding**. The page is on port 8096 of the container `docker`. The recipe never adds a graphics card to `docker`. It uses one only when `docker` has one already (a render device or the NVIDIA runtime); otherwise it warns that Jellyfin converts videos on the CPU. For hardware transcoding use the `lxc` mode. Not tested on hardware yet: Jellyfin in Docker, and its hardware transcoding.
+
+```bash
+sudo hs ct docker exec docker logs jellyfin --tail 50
+```
+
+Remove it (the settings stay in the folder):
+
+```bash
+sudo hs ct docker exec bash -c 'cd /shares/apps/recipes/jellyfin && docker compose -p jellyfin down'
+```
 
 ## Check that it worked
 - The library shows the film with poster and description, and it plays on the TV or in the browser.

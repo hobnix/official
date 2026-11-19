@@ -29,7 +29,7 @@ chmod +x "$WORK/bin/incus"
 export PATH="$WORK/bin:$PATH"
 
 echo "-- syntax and dry runs"
-for r in radarr sonarr lidarr prowlarr bazarr maintainerr sabnzbd seerr qbittorrent uchiyomi; do check "$r run.sh parses" bash -n "$R/$r/run.sh"; done
+for r in radarr sonarr lidarr prowlarr bazarr maintainerr sabnzbd seerr jellyfin qbittorrent uchiyomi; do check "$r run.sh parses" bash -n "$R/$r/run.sh"; done
 for r in _media _lib; do check "$r.sh parses" bash -n "$L/$r.sh"; done
 for r in radarr sonarr lidarr prowlarr bazarr maintainerr; do
   check_out "$r dry run names its container" "container '$r'" env HS_STATE_DIR="$STATE" bash "$R/$r/run.sh" --dry-run
@@ -54,6 +54,13 @@ for r in navidrome droppedneedle audiobookshelf; do
   check "$r may get a public name" grep -q 'declare_service .* public-ok ' "$R/$r/run.sh"
 done
 check_out "sabnzbd dry run" "container 'sabnzbd'" env HS_STATE_DIR="$STATE" bash "$R/sabnzbd/run.sh" --dry-run
+for r in seerr sabnzbd jellyfin; do
+  check_out "$r dry run names the docker path too" "docker mode: no container of its own: a compose project '$r'" env HS_STATE_DIR="$STATE" bash "$R/$r/run.sh" --dry-run
+  check "$r never writes a literal /opt/apps" bash -c '! grep -q "/opt/apps" "$1/run.sh"' _ "$R/$r"
+  check "$r declares both runtimes (header and manifest)" bash -c 'grep -q "^# runs: lxc docker$" "$1/run.sh" && grep -q "^runs = \[\"lxc\", \"docker\"\]" "$1/package.toml" && grep -q "^requires_core = \">=6\"" "$1/package.toml"' _ "$R/$r"
+done
+check_out "jellyfin dry run names its container" "container 'jellyfin'" env HS_STATE_DIR="$STATE" bash "$R/jellyfin/run.sh" --dry-run
+check_out "jellyfin dry run says a card only when docker has one" "a graphics card only when the container docker has one" env HS_STATE_DIR="$STATE" bash "$R/jellyfin/run.sh" --dry-run
 check_out "seerr dry run" "container 'seerr'" env HS_STATE_DIR="$STATE" bash "$R/seerr/run.sh" --dry-run
 check_out "uchiyomi dry run names the container and the manga folder" "container .uchiyomi.*|folder manga" env HS_STATE_DIR="$STATE" bash "$R/uchiyomi/run.sh" --dry-run
 check_out "qbittorrent dry run names the container" "container 'qbittorrent'" env HS_STATE_DIR="$STATE" bash "$R/qbittorrent/run.sh" --dry-run
@@ -62,7 +69,7 @@ check_out "qbittorrent dry run mentions the tunnel device" "/dev/net/tun" env HS
 check_out "the dry run follows RECIPE_NAME (qbittorrent)" "container 'throwaway-ct'" env HS_STATE_DIR="$STATE" RECIPE_NAME=throwaway-ct bash "$R/qbittorrent/run.sh" --dry-run
 check_out "the dry run follows RECIPE_NAME (sabnzbd)" "container 'throwaway-ct'" env HS_STATE_DIR="$STATE" RECIPE_NAME=throwaway-ct bash "$R/sabnzbd/run.sh" --dry-run
 check_out "the dry run follows RECIPE_NAME (seerr)" "container 'throwaway-ct'" env HS_STATE_DIR="$STATE" RECIPE_NAME=throwaway-ct bash "$R/seerr/run.sh" --dry-run
-for r in radarr sonarr lidarr prowlarr bazarr maintainerr sabnzbd seerr qbittorrent uchiyomi; do
+for r in radarr sonarr lidarr prowlarr bazarr maintainerr sabnzbd seerr jellyfin qbittorrent uchiyomi; do
   check "$r is executable" test -x "$R/$r/run.sh"
   check "$r has a German one-liner" grep -q '^# recipe.de: ' "$R/$r/run.sh"
 done
@@ -162,6 +169,52 @@ FAKE
   out=$(env PATH="$WORK/dbin:$PATH" RECIPE_RUNS=docker HS_DOCKER_STATUS="$WORK/dstatus" RECIPE_SKIP_STORAGE=1 RECIPE_SKIP_PULL=1 RECIPE_NAME=radarr2 HS_STATE_DIR="$WORK/dstate-r2" bash "$R/radarr/run.sh" 2>&1 </dev/null); rc=$?
   check_eq "a second radarr (--name) runs in docker mode" 0 "$rc"
   check "the second radarr has its own answers file" test -f "$WORK/dstate-r2/recipe-radarr2.conf"
+  # sabnzbd: the share at /media, unfinished downloads off the share, no dump (the settings are in the share apps)
+  for r in sabnzbd; do
+    DST=$WORK/dstate-$r; rm -rf "$DST"; mkdir -p "$DST"; export DLOG=$WORK/dlog-$r DCOMPOSE=$WORK/dcompose-$r; : > "$DLOG"
+    out=$(env PATH="$WORK/dbin:$PATH" RECIPE_RUNS=docker HS_DOCKER_STATUS="$WORK/dstatus" RECIPE_SKIP_STORAGE=1 RECIPE_SKIP_PULL=1 HS_STATE_DIR="$DST" bash "$R/$r/run.sh" 2>&1 </dev/null); rc=$?
+    check_eq "$r in docker mode runs through" 0 "$rc"
+    check "$r docker: no container of its own is created" bash -c '! grep -qE "^(launch|init|create) |manage-ct" "$1"' _ "$DLOG"
+    check "$r docker: the compose file goes to the share apps" grep -q "/shares/apps/recipes/$r/docker-compose.yml.new" "$DLOG"
+    check "$r docker: container_name is the app" grep -q "container_name: $r\$" "$DCOMPOSE"
+    check "$r docker: runs as the mapped user" grep -q "PUID=1500" "$DCOMPOSE"
+    check "$r docker: the share is /media:/media" grep -q '"/media:/media"' "$DCOMPOSE"
+    check "$r docker: config under the share apps" grep -q "/shares/apps/recipes/$r/config:/config" "$DCOMPOSE"
+    check "$r docker: no literal /opt/apps in the compose file" bash -c '! grep -q "/opt/apps" "$1"' _ "$DCOMPOSE"
+    check "$r docker: answers stay in recipe-$r.conf" test -f "$DST/recipe-$r.conf"
+    check "$r docker: in the backup list, no dump" test ! -s "$DST/backup-dump/docker"
+  done
+  # seerr: its database goes to the descriptor of docker
+  for r in seerr; do
+    DST=$WORK/dstate-$r; rm -rf "$DST"; mkdir -p "$DST"; export DLOG=$WORK/dlog-$r DCOMPOSE=$WORK/dcompose-$r; : > "$DLOG"
+    out=$(env PATH="$WORK/dbin:$PATH" RECIPE_RUNS=docker HS_DOCKER_STATUS="$WORK/dstatus" RECIPE_SKIP_STORAGE=1 RECIPE_SKIP_PULL=1 HS_STATE_DIR="$DST" bash "$R/$r/run.sh" 2>&1 </dev/null); rc=$?
+    check_eq "$r in docker mode runs through" 0 "$rc"
+    check "$r docker: no container of its own is created" bash -c '! grep -qE "^(launch|init|create) |manage-ct" "$1"' _ "$DLOG"
+    check "$r docker: the compose file goes to the share apps" grep -q "/shares/apps/recipes/$r/docker-compose.yml.new" "$DLOG"
+    check "$r docker: container_name is the app" grep -q "container_name: $r\$" "$DCOMPOSE"
+    check "$r docker: runs as the mapped user" grep -q 'user: "1500:1500"' "$DCOMPOSE"
+    check "$r docker: init is on" grep -q "init: true" "$DCOMPOSE"
+    check "$r docker: config under the share apps" grep -q "/shares/apps/recipes/$r/config:/app/config" "$DCOMPOSE"
+    check "$r docker: no literal /opt/apps in the compose file" bash -c '! grep -q "/opt/apps" "$1"' _ "$DCOMPOSE"
+    check "$r docker: answers stay in recipe-$r.conf" test -f "$DST/recipe-$r.conf"
+    check "$r docker: the dump goes to the descriptor of docker" grep -q "sqlite seerr /shares/apps/recipes/seerr/config/db/db.sqlite3" "$DST/backup-dump/docker"
+  done
+  # jellyfin: the library read-only, no device is ever added to docker, no card in the fake: the CPU warning
+  for r in jellyfin; do
+    DST=$WORK/dstate-$r; rm -rf "$DST"; mkdir -p "$DST"; export DLOG=$WORK/dlog-$r DCOMPOSE=$WORK/dcompose-$r; : > "$DLOG"
+    out=$(env PATH="$WORK/dbin:$PATH" RECIPE_RUNS=docker HS_DOCKER_STATUS="$WORK/dstatus" RECIPE_SKIP_STORAGE=1 RECIPE_SKIP_PULL=1 HS_STATE_DIR="$DST" bash "$R/$r/run.sh" 2>&1 </dev/null); rc=$?
+    check_eq "$r in docker mode runs through" 0 "$rc"
+    check "$r docker: no container of its own is created" bash -c '! grep -qE "^(launch|init|create) |manage-ct" "$1"' _ "$DLOG"
+    check "$r docker: the compose file goes to the share apps" grep -q "/shares/apps/recipes/$r/docker-compose.yml.new" "$DLOG"
+    check "$r docker: container_name is the app" grep -q "container_name: $r\$" "$DCOMPOSE"
+    check "$r docker: the library is read-only" grep -q '"/media:/media:ro"' "$DCOMPOSE"
+    check "$r docker: no graphics device without a card in docker" bash -c '! grep -q "/dev/dri" "$1"' _ "$DCOMPOSE"
+    check "$r docker: no device is added to the container docker" bash -c '! grep -q "config device add" "$1"' _ "$DLOG"
+    check "$r docker: no literal /opt/apps in the compose file" bash -c '! grep -q "/opt/apps" "$1"' _ "$DCOMPOSE"
+    check_out "$r docker: says it converts on the CPU" "converts videos on the CPU" echo "$out"
+    check "$r docker: answers stay in recipe-$r.conf" test -f "$DST/recipe-$r.conf"
+    check "$r docker: the dump goes to the descriptor of docker" grep -q "sqlite-tree $r /shares/apps/recipes/$r/config" "$DST/backup-dump/docker"
+  done
   unset DLOG DCOMPOSE
 else
   skip "docker mode checks need jq"

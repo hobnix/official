@@ -14,6 +14,15 @@ The recipe creates the container `seerr` and prints the address of the page (por
 
 **The setup wizard is open to whoever reaches it first.** Finish it before you give the page any public route.
 
+### Docker mode
+In `docker` mode the compose file is in `recipes/seerr` in the share `apps` (mounted at `/shares/apps` in the container `docker`; the settings in `recipes/seerr/config`). There is no container `seerr`; the page is on port 5055 of the container `docker`. Look at the app with:
+
+```bash
+sudo hs ct docker exec docker logs seerr --tail 50
+```
+
+The backup is the one of the container `docker`; the recipe only adds the database dump. Not tested on hardware yet.
+
 ## Run the wizard
 1. Sign in with your Jellyfin account. Everybody signs in the same way, so there is no second set of passwords.
 2. Add Radarr (`http://<radarr>:7878`, root folder `/media/movies`) and Sonarr (`http://<sonarr>:8989`, root folder `/media/series`) under **Settings > Services**, each with its API key (**Settings > General** in the app).
@@ -30,6 +39,13 @@ Seerr is the only page of the film apps that could get a public route, and that 
 ## Update and remove
 - Update: run the recipe again (`sudo hs recipe seerr`); it fetches the newer image and restarts. Your settings stay.
 - Remove: `sudo hs ct seerr remove` asks you to type the container's name and deletes the container with its settings. Restore from the backup with `hs backup`.
+- Remove in `docker` mode: there is no container of the app. Run `docker compose -p seerr down` in `/shares/apps/recipes/seerr` inside the container `docker`:
+
+```bash
+sudo hs ct docker exec bash -c 'cd /shares/apps/recipes/seerr && docker compose -p seerr down'
+```
+
+This stops and removes the app's container; the settings stay in the same folder until you delete it yourself. Not tested on hardware yet.
 
 ## If something goes wrong
 | Symptom | Cause | Fix |

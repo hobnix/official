@@ -14,6 +14,15 @@ sudo hs recipe sabnzbd
 
 The recipe creates the container `sabnzbd`, mounts the share `media` read-write at `/media` and prints the address of the page (port 8080 unless you chose another). Finished downloads land in `/media/downloads/usenet/complete`, the same path Radarr and Sonarr use, so they move a finished download into the library by a hard link. Unfinished downloads stay in `/var/tmp/sab-incomplete` inside the container (SSD pool), which the backup skips. This is an admin page for the home network: never give it a public route.
 
+### Docker mode
+In `docker` mode the compose file is in `recipes/sabnzbd` in the share `apps` (mounted at `/shares/apps` in the container `docker`; the settings in `recipes/sabnzbd/config`). There is no container `sabnzbd`; the page is on port 8080 of the container `docker`. The share `media` is mounted once into `docker` at `/media`, the same path Radarr and Sonarr see in either mode, so hard links keep working. Mounting restarts `docker` (see the [overview](jellyfin.md)). Unfinished downloads are in `/var/tmp/hs-sabnzbd/sabnzbd` inside `docker`, which the backup skips. Look at the app with:
+
+```bash
+sudo hs ct docker exec docker logs sabnzbd --tail 50
+```
+
+The recipe sets the folders, notifications and the encrypted-RAR rule through SABnzbd's API, which needs `curl` in the container `docker`. Without it the recipe warns and you set them by hand (**Config > Folders**: completed `/media/downloads/usenet/complete`, temporary `/incomplete`, scripts `/config/scripts`; **Config > Notifications**). The app has no domain name of its own, so it answers on the address only. Not tested on hardware yet.
+
 ## Connect your provider
 Open SABnzbd. The first-run wizard asks for your provider: server, port 563, SSL, user, password, connections (20 to 30). Press **Test Server**. The recipe never asks for the provider's login.
 
@@ -34,6 +43,13 @@ In each app add the download client under **Settings > Download Clients > SABnzb
 ## Update and remove
 - Update: run the recipe again (`sudo hs recipe sabnzbd`); it fetches the newer image and restarts. Your settings stay.
 - Remove: `sudo hs ct sabnzbd remove` asks you to type the container's name and deletes the container with its settings and databases. The share `media` and your files are not touched. Restore from the backup with `hs backup`.
+- Remove in `docker` mode: there is no container of the app. Run `docker compose -p sabnzbd down` in `/shares/apps/recipes/sabnzbd` inside the container `docker`:
+
+```bash
+sudo hs ct docker exec bash -c 'cd /shares/apps/recipes/sabnzbd && docker compose -p sabnzbd down'
+```
+
+This stops and removes the app's container; the settings stay in the same folder until you delete it yourself. Not tested on hardware yet.
 
 ## If something goes wrong
 | Symptom | Cause | Fix |

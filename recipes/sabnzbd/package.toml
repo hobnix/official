@@ -1,14 +1,15 @@
 # Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
 # script still say the same (tests/pkg.sh keeps both in step).
 name = "sabnzbd"
-version = "1.0.0"
+version = "1.1.0"
 kind = "recipe"
 title = "the Usenet downloader that Radarr and Sonarr send their downloads to"
 title_de = "der Usenet-Downloader, an den Radarr und Sonarr ihre Downloads schicken"
-requires_core = ">=1"
+requires_core = ">=6"
 permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares"]
 audience = "generic"
 needs = ["docker", "share"]
 uses = []
 input = "none"
 script = "run.sh"
+runs = ["lxc", "docker"]
