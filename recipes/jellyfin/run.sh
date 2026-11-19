@@ -318,6 +318,6 @@ $(say "1. The first visit asks for the language and creates the admin account.")
 $(say '2. "Add Media Library", one per kind: Movies /media/movies, Shows /media/series, Music /media/music, Anime shows /media/anime/series, Anime movies /media/anime/movies.')
 $([ -z "$gpu" ] || t '3. Dashboard -> Playback -> Transcoding: hardware acceleration "%s".' "$gpu")
 $([ "$THEME" != yes ] || say '4. Abyss: Settings -> Display -> Theme "Dark" (per user), then reload the page with Ctrl+F5.')
-$(t '5. Dashboard tile "Streams": Dashboard -> API Keys -> add a key, then run: hs services key %s (the key is asked hidden).' "$ct")
+$(t '5. Dashboard tile "Streams": Dashboard -> API Keys -> add a key, then run: hs services key %s (the key is asked hidden).' "$app")
 $(docs_hint containers-and-apps)
 DONE

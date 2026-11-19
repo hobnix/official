@@ -109,8 +109,8 @@ script_loop_run() { cat <<'SH'
 S=/hs/state
 mkdir -p "$S" /hs/logs
 notify() {   # notify <message>
-  [ -n "${NTFY_URL:-}" ] || return 0
-  node -e 'fetch(process.argv[1], { method: "POST", headers: { Title: "Configarr", Priority: "high" }, body: process.argv[2] }).catch(() => {})' "$NTFY_URL" "$1" || true
+  [ -s /secrets/ntfy ] || return 0
+  node -e 'const u = require("fs").readFileSync("/secrets/ntfy", "utf8").trim(); fetch(u, { method: "POST", headers: { Title: "Configarr", Priority: "high" }, body: process.argv[1] }).catch(() => {})' "$1" || true
 }
 while :; do
   if [ -e "$S/run-now" ]; then rm -f "$S/run-now"; sh /hs/run.sh || true; fi
@@ -219,6 +219,10 @@ fi
 step "Configarr"
 tz=$(timedatectl show -p Timezone --value 2>/dev/null || echo Etc/UTC)
 media_ntfy
+# the push address (it holds the topic) goes through stdin into a file, never into argv or the environment
+printf '%s
+' "$ntfy_server/$ntfy_topic" | incus exec "$ct" -- sh -c 'umask 077; cat > "$1/secrets/ntfy.new" && mv "$1/secrets/ntfy.new" "$1/secrets/ntfy"' sh "$D" ||
+  fail "$(t 'Could not write the push address.')"
 compose_yml() { cat <<YML
 services:
   $sn-git:
@@ -244,7 +248,6 @@ services:
       - SECRETS_LOCATION=/secrets/secrets.yml
       - CUSTOM_REPO_ROOT=/app/repos
       - SKIP_KINDS=$skip_kinds
-      - NTFY_URL=$ntfy_server/$ntfy_topic
     volumes: ["$D/hs:/hs", "$D/profile:/profile:ro", "$D/profile/templates:/app/templates:ro", "$D/profile/cfs:/app/cfs:ro", "$D/secrets:/secrets:ro", "$D/repos:/app/repos"]
 YML
 }
@@ -273,8 +276,8 @@ if [ -n "${RECIPE_SKIP_PULL:-}" ]; then
 else
   incus exec "$ct" -- test -s "$D/hs/ssh/id_ed25519" </dev/null ||
     in_ct "Making the deploy key" 'docker run --rm --entrypoint ssh-keygen -v "$2/hs/ssh:/ssh" "$1" -q -t ed25519 -N "" -C hobnix-configarr -f /ssh/id_ed25519 && chmod 600 "$2/hs/ssh/id_ed25519"' "$GIT_IMAGE" "$D"
-  if ! incus exec "$ct" -- test -s "$D/hs/ssh/known_hosts" </dev/null; then
-    in_ct "Taking the host key of $repo_host" 'docker run --rm --entrypoint ssh-keyscan "$1" -t ed25519 "$3" > "$2/hs/ssh/known_hosts.new" && test -s "$2/hs/ssh/known_hosts.new" && mv "$2/hs/ssh/known_hosts.new" "$2/hs/ssh/known_hosts"' "$GIT_IMAGE" "$D" "$repo_host"
+  if ! incus exec "$ct" -- sh -c 'grep -q "^$2[ ,]" "$1/hs/ssh/known_hosts" 2>/dev/null' sh "$D" "$repo_host" </dev/null; then
+    in_ct "Taking the host key of $repo_host" 'docker run --rm --entrypoint ssh-keyscan "$1" -t ed25519 "$3" > "$2/hs/ssh/known_hosts.add" && test -s "$2/hs/ssh/known_hosts.add" && cat "$2/hs/ssh/known_hosts.add" >> "$2/hs/ssh/known_hosts" && rm -f "$2/hs/ssh/known_hosts.add"' "$GIT_IMAGE" "$D" "$repo_host"
     warn "$(t 'The host key of %s was taken on first contact; check its fingerprint.' "$repo_host")"
   fi
   pub=$(incus exec "$ct" -- cat "$D/hs/ssh/id_ed25519.pub" </dev/null 2>/dev/null || true)   # the public half: fine to show
