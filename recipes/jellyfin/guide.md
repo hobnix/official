@@ -29,6 +29,7 @@ Jellyfin creates the share `media` that every film app uses. Each app below is a
 | `bazarr` | 6767 | Subtitles for what Radarr and Sonarr hold ([guide](bazarr.md)) |
 | `maintainerr` | 6246 | Clean-up rules for unwatched media ([guide](maintainerr.md)) |
 | `sabnzbd` | 8080 | Downloads from Usenet into `/media/downloads/usenet/complete` ([guide](sabnzbd.md)) |
+| `configarr` | | Syncs quality profiles from your git repository into Radarr and Sonarr every night ([guide](configarr.md)) |
 | `qbittorrent` | | Torrents, only through a VPN ([guide](qbittorrent.md)) |
 | `seerr` | | The page where people request films and series ([guide](seerr.md)) |
 | `tdarr` | | Converts audio at night so Jellyfin starts films at once ([guide](tdarr.md)) |

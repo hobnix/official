@@ -46,32 +46,10 @@ A nightly job in the container `radarr` (03:30, asked on first setup) announces 
 sudo hs ct radarr exec python3 /usr/local/lib/hs/hs-arr-dedupe.py --dry-run
 ```
 
-## Quality profiles with Recyclarr
-Recyclarr copies the quality profiles of the TRaSH guides into Radarr (the guides have profiles for several languages, including German ones that prefer releases with German audio). It does not run all the time; the container `radarr` has its own copy. List the templates (their names change):
+## Quality profiles
+The quality profiles of the TRaSH guides (German ones included) come from the recipe `configarr`, which syncs them every night from your own git repository into Radarr ([its guide](configarr.md)). This recipe does not install anything for it.
 
-```bash
-sudo hs ct radarr exec bash -c 'cd /opt/radarr && docker compose --profile tools run --rm recyclarr config list templates'
-```
-
-Create the file from a template, for example:
-
-```bash
-sudo hs ct radarr exec bash -c 'cd /opt/radarr && docker compose --profile tools run --rm recyclarr config create -t radarr-german-hd-bluray-web'
-```
-
-In `docker` mode the same commands run in the container `docker`, in the folder of the app, with the project name:
-
-```bash
-sudo hs ct docker exec bash -c 'cd /shares/apps/recipes/radarr && docker compose -p radarr --profile tools run --rm recyclarr config list templates'
-```
-
-The files are in `/opt/radarr/recyclarr/configs/` inside the container (docker mode: `/shares/apps/recipes/radarr/recyclarr/configs/`). Set `base_url` to `http://<radarr>:7878` and the API key of Radarr. Several profiles go into the same file as several `quality_profiles` entries. Not tested on hardware yet in `docker` mode.
-
-```bash
-sudo hs ct radarr exec bash -c 'cd /opt/radarr && docker compose --profile tools run --rm recyclarr sync'
-```
-
-The profiles then appear under **Settings > Profiles**. Use an HD profile for most things; UHD and Remux files are 30 GB and more each.
+An old `recyclarr` folder (`/opt/radarr/recyclarr` in the container, or `recipes/radarr/recyclarr` in the share apps) is not used any more. You can delete it once the profiles are in your repository.
 
 ## Coming from the recipe arr
 Earlier, one recipe `arr` ran all these apps in one container `arr`. Its settings are not moved over: export them and import them into the new containers.

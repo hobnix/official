@@ -39,32 +39,10 @@ Test with one series: add it with **Search on add**. SABnzbd shows the download,
 ## Connect Jellyfin
 Add the Jellyfin connection by hand (**Settings > Connect > Emby / Jellyfin**, port 8096, an API key from Jellyfin's dashboard): it needs a Jellyfin login, so the recipe cannot do it.
 
-## Quality profiles with Recyclarr
-Recyclarr copies the quality profiles of the TRaSH guides into Sonarr (the guides have profiles for several languages, including German ones that prefer releases with German audio). It does not run all the time; the container `sonarr` has its own copy. List the templates (their names change):
+## Quality profiles
+The quality profiles of the TRaSH guides (German ones included) come from the recipe `configarr`, which syncs them every night from your own git repository into Sonarr ([its guide](configarr.md)). This recipe does not install anything for it.
 
-```bash
-sudo hs ct sonarr exec bash -c 'cd /opt/sonarr && docker compose --profile tools run --rm recyclarr config list templates'
-```
-
-Create the file from a template (`<template>` is a name from the list):
-
-```bash
-sudo hs ct sonarr exec bash -c 'cd /opt/sonarr && docker compose --profile tools run --rm recyclarr config create -t <template>'
-```
-
-In `docker` mode the same commands run in the container `docker`, in the folder of the app, with the project name:
-
-```bash
-sudo hs ct docker exec bash -c 'cd /shares/apps/recipes/sonarr && docker compose -p sonarr --profile tools run --rm recyclarr config list templates'
-```
-
-The files are in `/opt/sonarr/recyclarr/configs/` inside the container (docker mode: `/shares/apps/recipes/sonarr/recyclarr/configs/`). Set `base_url` to `http://<sonarr>:8989` and the API key of Sonarr. Several profiles go into the same file as several `quality_profiles` entries. Not tested on hardware yet in `docker` mode.
-
-```bash
-sudo hs ct sonarr exec bash -c 'cd /opt/sonarr && docker compose --profile tools run --rm recyclarr sync'
-```
-
-The profiles then appear under **Settings > Profiles**. Use an HD profile for most things; UHD and Remux files are 30 GB and more each.
+An old `recyclarr` folder (`/opt/sonarr/recyclarr` in the container, or `recipes/sonarr/recyclarr` in the share apps) is not used any more. You can delete it once the profiles are in your repository.
 
 ## Check that it worked
 - `hs services list` shows Sonarr with its container and port.

@@ -65,6 +65,14 @@ title = "the Cloudflare Tunnel that makes chosen services reachable from the int
 requires_core = ">=3"
 audience = "personal"
 
+[package.configarr]
+version = "1.0.0"
+kind = "recipe"
+path = "recipes/configarr"
+title = "syncs the quality profiles and custom formats of Radarr and Sonarr from your own git repository, every night"
+requires_core = ">=6"
+audience = "generic"
+
 [package.docker]
 version = "1.0.0"
 kind = "recipe"
@@ -206,7 +214,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.radarr]
-version = "1.2.0"
+version = "2.0.0"
 kind = "recipe"
 path = "recipes/radarr"
 title = "keeps your films in order: searches them, sends the download to SABnzbd, files it in the library"
@@ -230,7 +238,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.sonarr]
-version = "1.2.0"
+version = "2.0.0"
 kind = "recipe"
 path = "recipes/sonarr"
 title = "keeps your series in order: searches new episodes, sends the download to SABnzbd, files it in the library"
