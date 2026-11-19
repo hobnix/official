@@ -13,7 +13,7 @@ set -euo pipefail
 #                      TRaSH guides (German ones included) into Radarr
 # The other apps of the group are recipes of their own: sonarr (series), lidarr (music), prowlarr (indexers),
 # bazarr (subtitles), maintainerr (clean-up rules); the downloader is "sabnzbd", the request page "seerr", the
-# conversion at night "tdarr". Their guide is the one of this recipe.
+# conversion at night "tdarr". Its guide is guide.md beside this file; the overview of the film apps is in the guide of jellyfin.
 #   share              the share "media" (the one of Jellyfin), READ-WRITE at /media with a user "radarr" mapped 1:1,
 #                      the same path SABnzbd uses: a finished download moves into the library by a hard link
 #   config             /opt/radarr/config inside the container (SSD pool); `hs backup ct radarr on` is switched on and a

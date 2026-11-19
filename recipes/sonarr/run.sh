@@ -11,8 +11,7 @@ set -euo pipefail
 #   Sonarr (8989)      series: searches, sends the download to SABnzbd, renames and files it in /media/series
 #   Recyclarr          not running: a tool for `docker compose run`, which syncs the quality profiles of the
 #                      TRaSH guides (German ones included) into Sonarr
-# The other apps of the group are recipes of their own (radarr, lidarr, prowlarr, bazarr, maintainerr); the guide is the
-# one of the recipe radarr.
+# The other apps of the group are recipes of their own (radarr, lidarr, prowlarr, bazarr, maintainerr); its guide is guide.md beside this file; the overview of the film apps is in the guide of jellyfin.
 #   share              the share "media" (the one of Jellyfin), READ-WRITE at /media with a user "sonarr" mapped 1:1,
 #                      the same path SABnzbd uses: a finished download moves into the library by a hard link
 #   config             /opt/sonarr/config inside the container (SSD pool); `hs backup ct sonarr on` is switched on and a
@@ -179,5 +178,5 @@ $(say "1. Settings -> Media Management -> Root Folder:  /media/series")
 $(say "2. Settings -> Download Clients -> SABnzbd (hs recipe sabnzbd), category  tv, then run this recipe again")
 $(say "3. Prowlarr (hs recipe prowlarr): Settings -> Apps -> Sonarr, this address and the API key (Settings -> General)")
 $(t 'Push messages (Settings -> Connect -> ntfy):  server %s   topic %s' "$ntfy_server" "$ntfy_topic")
-$(docs_hint radarr)
+$(docs_hint sonarr)
 DONE

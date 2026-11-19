@@ -90,5 +90,5 @@ $(t 'Done. Open in the browser:   %s' "$(web)")
 $(say "  Finish the setup wizard first (it is open to whoever gets there first): sign in with your Jellyfin")
 $(say "  account, then add Radarr (http://<radarr address>:7878) and Sonarr (<sonarr address>:8989) with their API keys.")
 $(say "  No Zoraxy rule yet: whether friends reach it from outside is described in the guide.")
-$(docs_hint radarr)
+$(docs_hint seerr)
 DONE

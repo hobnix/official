@@ -181,5 +181,5 @@ $(say "  1. SABnzbd asks for your news provider the first time: server, port 563
 $(say "     about 20 connections. (The indexer goes into Prowlarr, not here.)")
 $(say "  2. Radarr and Sonarr: Settings -> Download Clients -> add SABnzbd with this address and the API key")
 $(say "     (SABnzbd: Config -> General), category  movies  /  tv.")
-$(docs_hint radarr)
+$(docs_hint sabnzbd)
 DONE

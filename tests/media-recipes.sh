@@ -84,6 +84,10 @@ for f in "$R"/*/run.sh; do
   if [ -z "$n" ]; then fail "$(basename "$(dirname "$f")"): the closing text has no guide hint"; continue; fi
   case "$slugs" in *" $n "*) pass "$(basename "$(dirname "$f")"): guide $n exists" ;; *) fail "$(basename "$(dirname "$f")"): no guide with the slug $n" ;; esac
 done
+for r in radarr sonarr lidarr prowlarr bazarr maintainerr sabnzbd seerr; do
+  check "$r has a guide of its own" test -f "$R/$r/guide.md"
+  check "$r points at its own guide" grep -q "docs_hint $r)" "$R/$r/run.sh"
+done
 
 echo "-- full runs with the skip knobs (a fake incus, a throwaway container name)"
 if have jq; then
