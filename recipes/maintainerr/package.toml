@@ -1,7 +1,7 @@
 # Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
 # script still say the same (tests/pkg.sh keeps both in step).
 name = "maintainerr"
-version = "1.1.0"
+version = "1.1.1"
 kind = "recipe"
 title = "cleans up unwatched films and series by rules you write (it has none at first, deletes nothing)"
 title_de = "räumt nicht angesehene Filme und Serien nach deinen eigenen Regeln auf (hat zuerst keine, löscht nichts)"
