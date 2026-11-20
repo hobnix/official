@@ -15,7 +15,7 @@ sudo hs recipe paperless-ngx
 ```
 
 The recipe asks:
-- the port of the web page (default 8000),
+- the port of the web page (default 80),
 - the name of the folder for the documents (default `paperless`, under `/bulk/sensitive`, also the share's name),
 - the OCR languages as Tesseract codes joined with `+` (English, German, French, Italian and Spanish are built in; others are downloaded at every start),
 - the time zone,
@@ -52,7 +52,7 @@ Not tested on hardware yet.
 ## Keep it private
 **Paperless-ngx holds sensitive documents. Keep it private.** The route is private by default: reachable from the home network or over Tailscale. A public route is not recommended. If you need one, put it only behind a login, for example Authentik forward auth ([One login](authentik.md)).
 
-A public name needs the public address question: Paperless-ngx refuses requests from names it does not know (allowed hosts, CSRF check) and the page fails with a CSRF error. Run `sudo hs recipe paperless-ngx --ask` and give the address, for example `https://docs.example.com`, then make the route in your reverse proxy. Not tested on hardware yet.
+If the page gets a public name behind a reverse proxy, logging in can fail with a CSRF error. The public address question fixes that: run `sudo hs recipe paperless-ngx --ask` and give the address as scheme and host only, for example `https://docs.example.com` (no path, no trailing slash), then make the route in your reverse proxy. Not tested on hardware yet.
 
 ## Backup
 The container is in the nightly backup with a database dump. The documents are in the share, which is a separate switch:

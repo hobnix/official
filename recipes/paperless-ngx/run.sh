@@ -41,6 +41,7 @@ if [ "${1:-}" = --dry-run ]; then
   say "  if you say yes: a share <name>-consume under /bulk/shares that a scanner can write to, mounted at /mnt/paperless-consume"
   printf '%s\n' "$(t "  install Docker inside and start Paperless-ngx %s from its official docker-compose file (checked with sha256)" "$PAPERLESS_VERSION")"
   say "  optionally Tika and Gotenberg for office documents (Word, Excel, e-mails)"
+  say "  optionally ask for a public address (PAPERLESS_URL), only needed if the page gets a public route"
   say "  make the secret key, the database password and the admin password once (in /opt/paperless-ngx/.env, root only)"
   say "  keep the database on the SSD pool (/opt/paperless-ngx/postgres in the container)"
   say "  put the container in the nightly backup with a database dump"
@@ -56,7 +57,7 @@ tz_default=$(timedatectl show -p Timezone --value 2>/dev/null || echo Etc/UTC)
 setting TZ "Time zone of Paperless-ngx" "$tz_default" "$tz_default" '[A-Za-z_]+(/[A-Za-z0-9_+-]+)*'
 setting OFFICE "Also import office documents and e-mails (Tika and Gotenberg, about 1 GB more RAM)? yes or no" no no 'yes|no'
 setting SCAN "Share the consume folder over the network, so a scanner can save into it? yes or no" no no 'yes|no'
-setting URL "Public address of Paperless-ngx, only if it gets a public route (for example https://docs.example.com); empty for none" "" "" '|https?://[A-Za-z0-9._:/-]+'
+setting URL "Public address of Paperless-ngx, only if it gets a public route (for example https://docs.example.com); empty for none" "" "" '(https?://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?)?'
 share=$SHARE
 
 ensure_container "$ct" 4096 --docker
@@ -207,7 +208,7 @@ kv "Documents" "/bulk/sensitive/$share"
 if [ "$SCAN" = yes ]; then kv "Scanner share" "$unc"; fi
 declare_service paperless-ngx Paperless-ngx paperless-ngx private-ok Apps "Documents with OCR and search"
 box <<DONE
-$(say "1. The password is shown only now: log in, change it (profile menu, top right), keep it safe.")
+$(if [ -n "$admin_pw" ]; then say "1. The password is shown only now: log in, change it (profile menu, top right), keep it safe."; else say "1. Log in as admin; the password was shown at the first run (it is also in /opt/paperless-ngx/.env in the container)."; fi)
 $(say "2. Paperless-ngx holds sensitive documents: keep it private; on the internet only behind a login (see the guide).")
 $(if [ "$SCAN" = yes ]; then t '3. Scanner: save to the share %s (user with write access: hs manage-shares).' "$unc"; fi)
 $(if [ -n "$extra" ]; then say "4. Extra OCR languages are downloaded at every start (needs internet)."; fi)
