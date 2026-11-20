@@ -32,6 +32,7 @@ PAPERLESS_COMPOSE_TIKA_SHA256=5230d1e09125f4bdf4b3c3e373aca70a9a86a2d520b3af3efd
 scripts=${HS_SCRIPTS:-$(dirname "$0")/../../scripts}
 state=${HS_STATE_DIR:-/var/lib/hs}
 ct=${RECIPE_NAME:-paperless-ngx}
+# shellcheck source=/dev/null
 . "${HS_RECIPE_LIB:-$scripts/recipes/_lib.sh}"
 
 if [ "${1:-}" = --dry-run ]; then
@@ -49,6 +50,7 @@ if [ "${1:-}" = --dry-run ]; then
 fi
 
 port_setting "Paperless-ngx" 8000
+# shellcheck disable=SC2154  # a_name comes from _lib.sh
 setting SHARE "Name of the folder for the documents (under /bulk/sensitive, also the share's name)" paperless paperless "$a_name"
 ocr_default=eng
 [ "$(setting_get language 2>/dev/null || true)" != de ] || ocr_default=deu+eng
@@ -58,6 +60,7 @@ setting TZ "Time zone of Paperless-ngx" "$tz_default" "$tz_default" '[A-Za-z_]+(
 setting OFFICE "Also import office documents and e-mails (Tika and Gotenberg, about 1 GB more RAM)? yes or no" no no 'yes|no'
 setting SCAN "Share the consume folder over the network, so a scanner can save into it? yes or no" no no 'yes|no'
 setting URL "Public address of Paperless-ngx, only if it gets a public route (for example https://docs.example.com); empty for none" "" "" '(https?://[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?(:[0-9]{1,5})?)?'
+# shellcheck disable=SC2153  # SHARE is set by setting(), share is the same value in lower case
 share=$SHARE
 
 ensure_container "$ct" 4096 --docker
@@ -117,6 +120,8 @@ spin "Copying the docker-compose file into the container" incus file push -q --c
 # the secrets are made once, inside the container: the database password is fixed at the first database start
 fresh=false
 incus exec "$ct" -- test -s /opt/paperless-ngx/.env </dev/null || fresh=true
+# the snippet runs inside the container: its $ must not expand here
+# shellcheck disable=SC2016
 in_ct "Making the secrets (once)" '
   cd /opt/paperless-ngx
   if [ ! -s .env ]; then
