@@ -12,3 +12,23 @@ needs = []
 uses = []
 input = "none"
 script = "run.sh"
+
+# The page /apps/uptime-kuma (hobnix/core#424): a status panel, data only. The read `status` is `sys ext uptime-kuma status` of commands.tsv.
+[[web.reads]]
+words = "status"
+kind = "tsv"
+ttl = 10
+role = "viewer"
+
+[web.page]
+title = "Uptime Kuma"
+icon = "heartbeat"
+crumb = "Apps"
+sub = "The state of the instance"
+template = "object"
+
+[[web.page.blocks]]
+type = "kv"
+title = "Instance"
+read = "status"
+items = [{ k = "State", col = 0 }, { k = "Address", col = 1 }, { k = "Port", col = 2 }]
