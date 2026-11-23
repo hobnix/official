@@ -1,0 +1,4 @@
+# Commands of the uptime-kuma recipe (same columns and rules as an extension, scripts/lib/registry-load.sh). Only reads the page of the app needs.
+# kind	path	script	args	help	help.de	flags
+user	ext uptime-kuma status	@/status.sh	-	the state of the Uptime Kuma instance (state, address, port; reads only)	der Zustand der Uptime-Kuma-Instanz (Zustand, Adresse, Port; liest nur)	reads
+sys	sys ext uptime-kuma status	@/status.sh	--list	the state of the Uptime Kuma instance as data	-
