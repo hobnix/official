@@ -18,6 +18,7 @@ runs = ["lxc", "docker"]
 [[events]]
 kind = "planned"
 level = "info"
+retention = "ephemeral"
 label = "Duplicate found"
 icon = "warning"
 meaning = "a lower version of a film was found and is announced (media helper; subject: the service)"
@@ -27,6 +28,7 @@ notify = { category = "info", priority = "default", title = "{name}: {label}", m
 [[events]]
 kind = "deleted"
 level = "info"
+retention = "audit"
 label = "Lower version deleted"
 icon = "trash"
 meaning = "a lower version of a film was deleted (media helper; subject: the service)"
@@ -36,6 +38,7 @@ notify = { category = "info", priority = "default", title = "{name}: {label}", m
 [[events]]
 kind = "test"
 level = "info"
+retention = "ephemeral"
 label = "Test"
 icon = "check-circle"
 meaning = "the test message of Maintainerr (Script) (media helper; subject: the service)"

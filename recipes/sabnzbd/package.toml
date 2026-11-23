@@ -18,6 +18,7 @@ runs = ["lxc", "docker"]
 [[events]]
 kind = "added"
 level = "info"
+retention = "ephemeral"
 label = "Download queued"
 icon = "download-simple"
 meaning = "a download was queued (media helper; subject: the service)"
@@ -27,6 +28,7 @@ notify = { category = "info", priority = "low", title = "{name}: {label}", messa
 [[events]]
 kind = "unpacking"
 level = "info"
+retention = "ephemeral"
 label = "Unpacking"
 icon = "package"
 meaning = "a download is being unpacked (media helper; subject: the service)"
@@ -36,6 +38,7 @@ notify = { category = "info", priority = "min", title = "{name}: {label}", messa
 [[events]]
 kind = "finished"
 level = "info"
+retention = "audit"
 label = "Download finished"
 icon = "tray-arrow-down"
 meaning = "a download finished (media helper; subject: the service)"
@@ -45,6 +48,7 @@ notify = { category = "ok", priority = "default", title = "{name}: {label}", mes
 [[events]]
 kind = "failed"
 level = "warn"
+retention = "audit"
 label = "Download failed"
 icon = "warning-octagon"
 meaning = "a download failed (media helper; subject: the service)"
@@ -54,6 +58,7 @@ notify = { category = "problem", priority = "high", title = "{name}: {label}", m
 [[events]]
 kind = "queue-done"
 level = "info"
+retention = "ephemeral"
 label = "Queue finished"
 icon = "checks"
 meaning = "the download queue is empty (media helper; subject: the service)"
@@ -63,6 +68,7 @@ notify = { category = "info", priority = "low", title = "{name}: {label}", messa
 [[events]]
 kind = "disk-full"
 level = "error"
+retention = "audit"
 label = "Disk full"
 icon = "warning-octagon"
 meaning = "SABnzbd reports a full disk (media helper; subject: the service)"
@@ -72,6 +78,7 @@ notify = { category = "alarm", priority = "urgent", title = "{name}: {label}", m
 [[events]]
 kind = "error"
 level = "warn"
+retention = "audit"
 label = "Error"
 icon = "warning-octagon"
 meaning = "SABnzbd reports an error (media helper; subject: the service)"
@@ -81,6 +88,7 @@ notify = { category = "problem", priority = "high", title = "{name}: {label}", m
 [[events]]
 kind = "warning"
 level = "info"
+retention = "audit"
 label = "Warning"
 icon = "warning"
 meaning = "SABnzbd reports a warning (media helper; subject: the service)"
@@ -90,6 +98,7 @@ notify = { category = "problem", priority = "default", title = "{name}: {label}"
 [[events]]
 kind = "test"
 level = "info"
+retention = "ephemeral"
 label = "Test"
 icon = "check-circle"
 meaning = "the test message of SABnzbd (media helper; subject: the service)"
