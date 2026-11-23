@@ -98,7 +98,7 @@ notify = { category = "info", priority = "low", title = "{name}: {label}", messa
 
 # What this app offers to other packages. The key file is written by run.sh (export_key) from the app's own config, root only.
 [integrations.media]
-api_url = "http://{host}"
+api_url = "http://{host}:{port}"
 key_file = "/var/lib/hs/stat-sabnzbd"
 key_header = "X-Api-Key"
 kind = "downloader"
