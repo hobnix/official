@@ -13,3 +13,10 @@ uses = []
 input = "none"
 script = "run.sh"
 runs = ["lxc", "docker"]
+
+# What this app offers to other packages. The key file is written by run.sh (export_key) from the app's own config, root only.
+[integrations.media]
+api_url = "http://{host}:7878"
+key_file = "/var/lib/hs/stat-radarr"
+key_header = "X-Api-Key"
+kind = "movies"
