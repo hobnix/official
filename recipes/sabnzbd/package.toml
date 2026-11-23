@@ -104,3 +104,10 @@ icon = "check-circle"
 meaning = "the test message of SABnzbd (media helper; subject: the service)"
 payload = ["service", "name", "label", "icon", "title", "sub?", "body", "fields?", "footer?", "poster_url?"]
 notify = { category = "info", priority = "low", title = "{name}: {label}", message = "{body}" }
+
+# What this app offers to other packages. The key file is written by run.sh (export_key) from the app's own config, root only.
+[integrations.media]
+api_url = "http://{host}:{port}"
+key_file = "/var/lib/hs/stat-sabnzbd"
+key_header = "X-Api-Key"
+kind = "downloader"

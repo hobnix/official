@@ -35,6 +35,23 @@ ct=${RECIPE_NAME:-radarr}; app=$ct
 . "${HS_RECIPE_MEDIA:-$scripts/recipes/_media.sh}"
 PORT=7878   # Radarr's own port: Prowlarr, Seerr and Bazarr are told this one
 
+# The API key lives only inside the container; other packages read it from the server ([integrations.media] in package.toml).
+# Exported to $state/stat-radarr (the name `hs services key` uses), 0600 root:root, written again at every run so a re-created
+# container with a new key refreshes it. The key never goes through argv, the environment or the output.
+# `hs ct remove` leaves the file: the core removes it, the recipe has no remove step.
+export_key() {   # export_key <key read from the app's config, may be empty>
+  local f="$state/stat-radarr" k=$1
+  [ -n "$k" ] || { warn "No API key to export yet (run the recipe again)"; return 0; }
+  [[ "$k" =~ ^[A-Za-z0-9._-]{8,200}$ ]] || { k=; warn "The API key has an unexpected shape, not exported"; return 0; }
+  secret_prepare "stat-radarr" "$state" || { k=; warn "The vault is closed, the key is not exported (hs unlock, then run the recipe again)"; return 0; }
+  mkdir -p "$state"
+  ( umask 077; printf '%s\n' "$k" > "$f" )   # > keeps a vault symlink in place
+  k=
+  chown root:root "$f" 2>/dev/null || true
+  chmod 600 "$f" 2>/dev/null || true
+  ok "$(t "The API key of %s is exported to %s (root only), other packages read it from there" "$ct" "$f")"
+}
+
 if [ "${1:-}" = --dry-run ]; then
   say "Would:"
   printf '%s\n' "$(t "  create the container '%s' (Docker inside, 1536 MB RAM limit) unless it exists, with a fixed address (.50-.99) if UniFi is connected (hs net setup)" "$ct")"
@@ -144,6 +161,14 @@ else
   if incus info jellyfin >/dev/null 2>&1; then
     note "Jellyfin: Settings -> Connect -> + -> Emby/Jellyfin: host, port 8096, API key (Jellyfin: Dashboard -> API Keys), tick Update Library. Not set by the recipe: the key needs a Jellyfin login"
   fi
+fi
+
+step "API key"
+if [ -n "${RECIPE_SKIP_PULL:-}" ]; then
+  note "skipped (RECIPE_SKIP_PULL): no key exported"
+else
+  cfgdir=/opt/radarr/config; if $RUNS_DOCKER; then cfgdir=$APP_DIR/config; fi
+  export_key "$(incus exec "$ct" -- sed -n 's|.*<ApiKey>\(.*\)</ApiKey>.*|\1|p' "$cfgdir/config.xml" </dev/null 2>/dev/null | head -n1 || true)"
 fi
 
 step "Backup"
