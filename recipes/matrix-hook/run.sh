@@ -63,9 +63,15 @@ else
   secret=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
   pw=$(head -c 18 /dev/urandom | base64 | tr -d '/+=')
   secret_prepare matrix-hook "$state" || exit 1
-  incus exec "$ct" -- register_new_matrix_user -u hs-bot -p "$pw" --no-admin \
+  # the password travels as a 0600 file (register_new_matrix_user --password-file), never in argv or the environment
+  pwf=$(umask 077; mktemp); trap 'rm -f "$pwf"; incus exec "$ct" -- rm -f /root/.hs-bot-pw </dev/null >/dev/null 2>&1 || true' EXIT
+  printf '%s' "$pw" > "$pwf"
+  incus file push -q --mode 0600 --uid 0 --gid 0 "$pwf" "$ct/root/.hs-bot-pw" </dev/null ||
+    fail "$(t "Could not create the user hs-bot.")"
+  incus exec "$ct" -- register_new_matrix_user -u hs-bot --password-file /root/.hs-bot-pw --no-admin \
     -c /etc/matrix-synapse/conf.d/hs-registration.yaml "http://127.0.0.1:$syn_port" >/dev/null </dev/null ||
     fail "$(t "Could not create the user hs-bot. If it exists already, remove it in the admin page (Synapse-Admin) and run this again.")"
+  rm -f "$pwf"; incus exec "$ct" -- rm -f /root/.hs-bot-pw </dev/null
   ( umask 077; printf 'secret: %s\nuser: @hs-bot:%s\npassword: %s\n' "$secret" "$server_name" "$pw" > "$state/matrix-hook" )
   ok "$(t 'Bot user created, secret and password stored in %s/matrix-hook (root only)' "$state")"
 fi
@@ -77,21 +83,27 @@ step "Rate limit of the bot"
 # would take hours. The admin login of the synapse recipe lifts the limit for hs-bot only (no admin rights for it).
 admin_pw=$(awk '$1 == "password:" { print $2; exit }' "$state/synapse-admin" 2>/dev/null || true)
 if [ -n "$admin_pw" ]; then
+  # the admin password reaches the container as a 0600 login body that curl reads with --data @file, never in argv
+  loginf=$(umask 077; mktemp)
+  printf '%s' "$admin_pw" | jq -Rs '{type:"m.login.password",identifier:{type:"m.id.user",user:"admin"},password:.}' > "$loginf"
+  incus file push -q --mode 0600 --uid 0 --gid 0 "$loginf" "$ct/root/.hs-admin-login.json" </dev/null; rm -f "$loginf"
   in_ct "Lifting the limit for hs-bot, so a big clear is quick" '
     api="http://127.0.0.1:$1"
+    trap "rm -f /root/.hs-admin-login.json" EXIT
     tok=$(curl -fsS -X POST "$api/_matrix/client/v3/login" -H "Content-Type: application/json" \
-      -d "{\"type\":\"m.login.password\",\"identifier\":{\"type\":\"m.id.user\",\"user\":\"admin\"},\"password\":\"$2\"}" |
+      --data @/root/.hs-admin-login.json |
       python3 -c "import json,sys;print(json.load(sys.stdin)[\"access_token\"])")
-    curl -fsS -X POST "$api/_synapse/admin/v1/users/$3/override_ratelimit" -H "Authorization: Bearer $tok" \
+    rm -f /root/.hs-admin-login.json
+    curl -fsS -X POST "$api/_synapse/admin/v1/users/$2/override_ratelimit" -H "Authorization: Bearer $tok" \
       -H "Content-Type: application/json" -d "{\"messages_per_second\":0,\"burst_count\":0}" >/dev/null
-    curl -fsS -X POST "$api/_matrix/client/v3/logout" -H "Authorization: Bearer $tok" >/dev/null || true' "$syn_port" "$admin_pw" "$bot" ||
+    curl -fsS -X POST "$api/_matrix/client/v3/logout" -H "Authorization: Bearer $tok" >/dev/null || true' "$syn_port" "$bot" ||
     warn "$(t "Could not lift the rate limit of hs-bot. A big clear will work, but slowly.")"
 else
   warn "$(t "No admin login in %s/synapse-admin, so the rate limit of hs-bot stays. A big clear will work, but slowly." "$state")"
 fi
 
 step "Starting it"
-cfg=$(mktemp); trap 'rm -f "$cfg"' EXIT
+cfg=$(umask 077; mktemp); trap 'rm -f "$cfg"' EXIT
 # the time on the cards is the server's local time
 tz=$(timedatectl show -p Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null || true)
 printf '{"homeserver":"http://127.0.0.1:%s","bot_user":"%s","bot_password":"%s","owner":"%s","secret":"%s","port":%s,"bind":"0.0.0.0","timezone":"%s","card_width":%s}\n' \
