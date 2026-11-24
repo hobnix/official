@@ -14,7 +14,8 @@ for n in portainer arcane; do
   f=$R/$n/run.sh; m=$R/$n/package.toml
   check "$n: runs only in docker, needs docker, provides docker-manager" bash -c 'grep -q "^runs = \[\"docker\"\]" "$1" && grep -q "^needs = \[\"docker\"\]" "$1" && grep -q "provides = \[\"docker-manager\"\]" "$1"' _ "$m"
   check "$n: the route is an admin page and never public" bash -c 'grep -q "never-public" "$1" && grep -q "admin = true" "$1"' _ "$m"
-  check "$n: the service is declared never-public" grep -qE "^declare_service \"\\\$app\" .* never-public Administration" "$f"
+  check "$n: the service is declared never-public" grep -qE "^declare_service \"\\\$svc\" .* never-public Administration" "$f"
+  check "$n: an adopted install refreshes the old service entry docker (no second one)" grep -q '^svc=\$app; ! \$adopted || svc=docker' "$f"
   check "$n: the image is pinned (no :latest)" bash -c 'grep -qE "^IMAGE=[^ ]+:[0-9v][0-9.]+" "$1" && ! grep -q ":latest\|:lts" "$1"' _ "$f"
   check "$n: the old install in /opt/<name> is adopted in place" grep -q 'APP_DIR=/opt/\$app' "$f"
   check "$n: the old compose file is kept once" grep -q 'docker-compose.yml.before-recipe' "$f"

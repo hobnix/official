@@ -6,6 +6,9 @@ Arcane is no longer maintained upstream. This recipe only takes over an Arcane t
 - Docker is on, with an Arcane from the old Docker setting in `/opt/arcane` of the container `docker`.
 - A fresh install is refused: the recipe says so and points to Portainer.
 
+## What to know first
+**Arcane has the Docker socket, which is root over Docker on your server.** Whoever logs in can start any container and reach every file it can mount. Keep it on the home network and never give it a public route (the recipe declares it never public).
+
 ## Take over Arcane
 ```bash
 sudo hs recipe arcane
@@ -16,7 +19,7 @@ The recipe uses `/opt/arcane` where it is: the same data, the same keys (`.env`)
 Not tested on hardware yet.
 
 ## Check that it worked
-- `hs services list` shows Arcane, never public.
+- `hs services list` shows Arcane, never public, in the entry the old setup made (named `docker`), not twice.
 - The login of before still works and the projects in `/opt/projects` are still there.
 
 ## Update and remove

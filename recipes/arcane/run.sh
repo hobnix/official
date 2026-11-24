@@ -60,9 +60,9 @@ fi
 
 recipe_runtime docker
 # An install of the old Docker setting lives in /opt/<name> of the container docker: use it in place (unless the recipe has its own folder already)
-legacy_port=$DEFAULT_PORT
+adopted=false; legacy_port=$DEFAULT_PORT
 if ! $existed && incus exec docker -- test -f "/opt/$app/docker-compose.yml" </dev/null 2>/dev/null; then
-  existed=true; APP_DIR=/opt/$app
+  adopted=true; existed=true; APP_DIR=/opt/$app
   legacy_port=$(incus exec docker -- cat "$APP_DIR/docker-compose.yml" </dev/null 2>/dev/null |
     sed -nE 's/^[[:space:]]*-?[[:space:]]*"?([0-9.]+:)?([0-9]+):3552"?[[:space:]]*$/\2/p' | head -n1 || true)
   legacy_port=${legacy_port:-$DEFAULT_PORT}
@@ -107,7 +107,9 @@ fi
 # the install of the Docker setting is the recipe's now: forget the note that it runs from the old setup
 if [ "$(cat "$state/docker-manager-legacy" 2>/dev/null || true)" = arcane ]; then rm -f "$state/docker-manager-legacy"; fi
 
-declare_service "$app" Arcane arcane never-public Administration "Docker stacks"
+# an adopted install already has its service entry under the name docker (the Docker setting made it): refresh that one, no second entry
+svc=$app; ! $adopted || svc=docker
+declare_service "$svc" Arcane arcane never-public Administration "Docker stacks"
 
 recipe_facts web
 box <<DONE

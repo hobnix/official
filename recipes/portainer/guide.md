@@ -6,6 +6,11 @@ Run Portainer inside the Docker container of your server to see and manage its c
 - Docker is on: `sudo hs docker enable` (see [Containers and apps](containers-and-apps.md)).
 - Portainer is optional. The Docker page of the web interface works without it.
 
+## What to know first
+**Portainer has the Docker socket, which is root over Docker on your server.** Whoever logs in can start any container and reach every file it can mount. Keep it on the home network and never give it a public route (the recipe declares it never public).
+
+**The first person who opens Portainer becomes its admin.** Open the page right after the install and set the admin account yourself. The recipe cannot create the account for you: a password must not go through a command line or the environment, so this step stays by hand.
+
 ## Set up Portainer
 ```bash
 sudo hs recipe portainer
@@ -27,7 +32,7 @@ The recipe finds `/opt/portainer` in the container `docker` and uses it where it
 Not tested on hardware yet.
 
 ## Check that it worked
-- `hs services list` shows Portainer, never public.
+- `hs services list` shows Portainer, never public. A taken-over install keeps the entry the old setup made (named `docker`), so it is not listed twice.
 - The address answers in the browser and the login page appears.
 
 ## Update and remove

@@ -77,7 +77,9 @@ fi
 # the install of the Docker setting is the recipe's now: forget the note that it runs from the old setup
 if [ "$(cat "$state/docker-manager-legacy" 2>/dev/null || true)" = portainer ]; then rm -f "$state/docker-manager-legacy"; fi
 
-declare_service "$app" Portainer portainer never-public Administration "Docker containers and stacks"
+# an adopted install already has its service entry under the name docker (the Docker setting made it): refresh that one, no second entry
+svc=$app; ! $adopted || svc=docker
+declare_service "$svc" Portainer portainer never-public Administration "Docker containers and stacks"
 
 recipe_facts web
 box <<DONE
