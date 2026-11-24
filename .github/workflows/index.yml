@@ -51,7 +51,7 @@ jobs:
   index:
     if: github.event_name != 'schedule'
     # pinned: update by a reviewed PR to official, never to a branch
-    uses: hobnix/core/.github/workflows/package-index.yml@010a286f387c48fa441768239fc1b534970196db
+    uses: hobnix/core/.github/workflows/package-index.yml@d497974f81235d7a316d3acde1ab272f6fa28e0f
     # the reusable workflow's publish job asks for these; a caller cannot give less than a called job needs
     permissions:
       contents: read
@@ -60,6 +60,6 @@ jobs:
     with:
       repo_id: official
       # pinned: update by a reviewed PR to official, never to a branch
-      core_ref: 010a286f387c48fa441768239fc1b534970196db
+      core_ref: d497974f81235d7a316d3acde1ab272f6fa28e0f
       # GitHub Pages default URL of this repository; replace with the packages.hobnix.dev URL when #1071 is decided
       pages_url: https://hobnix.github.io/official
