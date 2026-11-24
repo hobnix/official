@@ -1,0 +1,67 @@
+# Manifest of a package (docs/PLAN-packages.md). The rest of this extension is described by capability.toml beside it until the
+# packages move out of this repository.
+name = "media-hub"
+version = "0.1.0"
+kind = "extension"
+title = "Media hub: watch statistics from the media apps"
+title_de = "Medien-Hub: Statistik aus den Medien-Apps"
+requires_core = ">=10"   # 7 = events and rollups; 10 = the [service] table
+audience = "generic"
+# integration:media = the right to ask for the API key of the media apps (integration_key, docs/PLAN-packages.md "Integrations"); the service reads it
+# to poll the sessions. web.change = the plan and start of the storage suggestion. fs.write = watched.tsv, the list of what was watched, which the
+# suggestion reads. events.emit: the events below (record-session writes them).
+permissions = ["web.read", "web.change", "integration:media", "events.emit:pkg.media-hub.*", "fs.write:/var/lib/hs/media-hub"]
+
+# The poller: one process that stays (docs/extensions-sdk.md "Events and snapshots"), a Rust program (src/, built by scripts/rust-build.sh). The
+# protocol has no timer, so the service polls on its own clock. It counts a playback itself: a rollup and an emit of session-completed through the
+# protocol (the rollup kind is that metric event kind). It subscribes to nothing: the poster of an `imported` event is drawn by the package `posters`
+# (its service listens to pkg.media-hub.imported), so this service never runs a host command.
+[service]
+exec = "@/bin/media-svc"
+subscribe = []
+health_interval = 30
+
+# The program of the service. Not built yet: no sha256 and no file here; the release preparation builds it (scripts/rust-build.sh --install) and
+# commits program and hash. Until then `repo-check --release` and `hs pkg install` refuse this package (binary.unbuilt).
+[[binary]]
+path = "bin/media-svc"
+sha256 = ""
+bin = "media-svc"
+target = "x86_64-unknown-linux-musl"
+
+# What happened, as events (docs/events.md "Package events"). The class says how long the raw row is kept; the history lives in the monthly rollup.
+[[events]]
+kind = "session-completed"
+level = "info"
+label = "Playback finished"
+icon = "play-circle"
+meaning = "someone finished watching something (subject: the user)"
+retention = "metric"
+payload = ["minutes", "title?"]
+
+[[events]]
+kind = "now-playing"
+level = "info"
+label = "Playing now"
+icon = "play"
+meaning = "a playback started (subject: the user); a status flash, only interesting now"
+retention = "ephemeral"
+payload = ["title?"]
+
+[[events]]
+kind = "imported"
+level = "info"
+label = "Media imported"
+icon = "download-simple"
+meaning = "a film or episode was imported into the library (subject: the app)"
+retention = "audit"
+payload = ["title", "app?"]
+
+[[events]]
+kind = "upgraded"
+level = "info"
+label = "Media upgraded"
+icon = "arrow-fat-up"
+meaning = "a file was replaced by a better version (subject: the app)"
+retention = "audit"
+payload = ["title", "app?"]
