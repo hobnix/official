@@ -1,5 +1,16 @@
 publish = "index"
 
+[package.arcane]
+version = "1.0.0"
+kind = "recipe"
+path = "recipes/arcane"
+title = "deprecated: a web page for your Docker projects, only takes over an Arcane that already runs (use portainer for a new one)"
+requires_core = ">=9"
+audience = "generic"
+icon = "ph:anchor"
+category = "admin"
+app_version = "2.17.3"
+
 [package.audiobookshelf]
 version = "1.0.1"
 kind = "recipe"
@@ -178,6 +189,17 @@ path = "recipes/pelican"
 title = "game servers with a web panel (Panel and Wings, two containers)"
 requires_core = ">=1"
 audience = "personal"
+
+[package.portainer]
+version = "1.0.0"
+kind = "recipe"
+path = "recipes/portainer"
+title = "a web page to look after your Docker containers, images and stacks (admin page, never public)"
+requires_core = ">=9"
+audience = "generic"
+icon = "ph:squares-four"
+category = "admin"
+app_version = "2.45.4"
 
 [package.prowlarr]
 version = "1.1.1"

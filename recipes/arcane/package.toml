@@ -1,0 +1,28 @@
+# Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
+# script still say the same (tests/pkg.sh keeps both in step).
+# DEPRECATED: the manifest has no `deprecated` field, so the title and the description say it. The recipe only takes over an existing
+# install and refuses a fresh one (hobnix/core#1079).
+name = "arcane"
+version = "1.0.0"
+kind = "recipe"
+title = "deprecated: a web page for your Docker projects, only takes over an Arcane that already runs (use portainer for a new one)"
+title_de = "veraltet: eine Webseite für deine Docker-Projekte, übernimmt nur ein laufendes Arcane (für ein neues: portainer)"
+requires_core = ">=9"
+permissions = ["host:incus", "net:internet"]
+audience = "generic"
+needs = ["docker"]
+uses = []
+input = "none"
+script = "run.sh"
+runs = ["docker"]
+provides = ["docker-manager"]
+description = "Deprecated. Arcane runs inside the Docker container. The recipe only takes over an install that exists (same data, keys and port) and refuses a fresh one: use portainer instead."
+icon = "ph:anchor"
+category = "admin"
+upstream = "https://getarcane.app"
+app_version = "2.17.3"
+
+# An admin page: it controls Docker. No public route, ever (scripts/services.py refuses one).
+[app.routes]
+default = "web"
+web = { port = 3552, scheme = "http", exposure = "never-public", admin = true }
