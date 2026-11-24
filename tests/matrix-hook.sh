@@ -26,6 +26,7 @@ check "matrix-hook.sh has a German one-liner" grep -q '^# recipe.de: ' "$P/run.s
 check "no password in incus exec or register_new_matrix_user argv" bash -c '! grep -nE "incus exec.*\\$\{?(pw|admin_pw)\b|register_new_matrix_user.*(-p |--password )" "$1"' _ "$P/run.sh"
 check "no password in a curl -d" bash -c '! grep -nE "(-d|--data[a-z-]*) +[\"'"'"']?[^@ ]*\\$\{?(pw|admin_pw|2)\b" "$1"' _ "$P/run.sh"
 check "no admin password handed on as an argument" bash -c '! grep -E "\"\\$\{?admin_pw\}?\"" "$1" | grep -vE "printf|-n |^ *#"' _ "$P/run.sh"
+check "the admin login file has a trap and a failing push only warns" bash -c 'grep -q "trap .rm -f \"\$loginf\"" "$1" && grep -q "if printf .%s. \"\$admin_pw\" | jq" "$1" && grep -q "\"\${loginf:-}\"" "$1"' _ "$P/run.sh"
 check "bot password goes by --password-file" grep -q -- '--password-file' "$P/run.sh"
 check_out "dry run names the service" "hs-matrix-hook" env HS_STATE_DIR="$STATE" bash "$P/run.sh" --dry-run
 

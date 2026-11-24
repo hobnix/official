@@ -85,8 +85,10 @@ admin_pw=$(awk '$1 == "password:" { print $2; exit }' "$state/synapse-admin" 2>/
 if [ -n "$admin_pw" ]; then
   # the admin password reaches the container as a 0600 login body that curl reads with --data @file, never in argv
   loginf=$(umask 077; mktemp)
-  printf '%s' "$admin_pw" | jq -Rs '{type:"m.login.password",identifier:{type:"m.id.user",user:"admin"},password:.}' > "$loginf"
-  incus file push -q --mode 0600 --uid 0 --gid 0 "$loginf" "$ct/root/.hs-admin-login.json" </dev/null; rm -f "$loginf"
+  trap 'rm -f "$loginf"; incus exec "$ct" -- rm -f /root/.hs-admin-login.json </dev/null >/dev/null 2>&1 || true' EXIT ERR
+  if printf '%s' "$admin_pw" | jq -Rs '{type:"m.login.password",identifier:{type:"m.id.user",user:"admin"},password:.}' > "$loginf" &&
+    incus file push -q --mode 0600 --uid 0 --gid 0 "$loginf" "$ct/root/.hs-admin-login.json" </dev/null; then
+    rm -f "$loginf"
   in_ct "Lifting the limit for hs-bot, so a big clear is quick" '
     api="http://127.0.0.1:$1"
     trap "rm -f /root/.hs-admin-login.json" EXIT
@@ -98,12 +100,15 @@ if [ -n "$admin_pw" ]; then
       -H "Content-Type: application/json" -d "{\"messages_per_second\":0,\"burst_count\":0}" >/dev/null
     curl -fsS -X POST "$api/_matrix/client/v3/logout" -H "Authorization: Bearer $tok" >/dev/null || true' "$syn_port" "$bot" ||
     warn "$(t "Could not lift the rate limit of hs-bot. A big clear will work, but slowly.")"
+  else
+    warn "$(t "Could not lift the rate limit of hs-bot. A big clear will work, but slowly.")"
+  fi
 else
   warn "$(t "No admin login in %s/synapse-admin, so the rate limit of hs-bot stays. A big clear will work, but slowly." "$state")"
 fi
 
 step "Starting it"
-cfg=$(umask 077; mktemp); trap 'rm -f "$cfg"' EXIT
+cfg=$(umask 077; mktemp); trap 'rm -f "$cfg" "${loginf:-}"' EXIT
 # the time on the cards is the server's local time
 tz=$(timedatectl show -p Timezone --value 2>/dev/null || cat /etc/timezone 2>/dev/null || true)
 printf '{"homeserver":"http://127.0.0.1:%s","bot_user":"%s","bot_password":"%s","owner":"%s","secret":"%s","port":%s,"bind":"0.0.0.0","timezone":"%s","card_width":%s}\n' \
