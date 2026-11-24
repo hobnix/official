@@ -26,11 +26,12 @@ Second slice (needs core API level 10 for the `[service]` table):
   only when a package named `plex` declares `[integrations.media]`.
 - **Plain http only:** the SDK client has no TLS. A provider whose `api_url` starts with `https://` is named in the log once (`TlsUnsupported`) and not
   polled; put a local TLS-terminating proxy in front of it or use the plain http address of the app on the same host.
-- **Keys by provider:** the listing (`hs sys pkg integrations media`, run by the service: still an `hs` call, to be replaced by `init.integrations` when the core has it (hobnix/core#1129 step 3)) names each provider; its key is the systemd credential
+- **Keys by provider:** the rows of `init.integrations` (the core builds them; the service runs no `hs`; they carry no key and no key state) name each provider and its address; its key is the systemd credential
   `integration-media-<provider>` read with the SDK (`credential_for`), never from argv or the environment, never logged, and sent only to the address of
   its own provider in the header of its row (a row without `key_header` gets the header of the adapter: Jellyfin `X-Emby-Token`, Plex `X-Plex-Token`). A
   provider without an adapter (Radarr, Sonarr, SABnzbd) is skipped and named once in the log; one without a credential is named once and not asked. The
-  old known gap (one credential for all providers) is closed by the per-provider credentials of the core.
+  old known gap (one credential for all providers) is closed by the per-provider credentials of the core. The rows are read once at start: a new app
+  needs a restart of the service. A core that sends no `integrations` (older than the field) leaves the poller idle with "no media app found" in the log.
 - **Poster:** an `imported` event (`pkg.media-hub.imported`, written by `record-import`; nothing writes it by itself yet) is handled by the package `posters`,
   not by this service: its service `poster-svc.py` subscribes to the event and draws the poster itself. media-svc runs no host command for it (inside the
   confined unit `hs` cannot see the package registry or the job store). If `posters` is off, nothing is drawn and nothing fails.

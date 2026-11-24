@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "hobnix-ext-sdk"
 version = "0.1.0"
-source = "git+https://github.com/hobnix/core?rev=3257b2204c56f059ff84202b83a39898015f879c#3257b2204c56f059ff84202b83a39898015f879c"
+source = "git+https://github.com/hobnix/core?rev=40f331093fcdd66eaa4677e99af1132833255956#40f331093fcdd66eaa4677e99af1132833255956"
 dependencies = [
  "serde",
  "serde_json",

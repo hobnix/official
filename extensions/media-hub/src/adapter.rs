@@ -13,7 +13,7 @@ pub struct Session {
 }
 
 pub struct Adapter {
-    /// The package name `hs pkg integrations media` lists.
+    /// The package name `init.integrations` names for the integration `media`.
     pub package: &'static str,
     /// GET <api_url><endpoint>.
     pub endpoint: &'static str,
