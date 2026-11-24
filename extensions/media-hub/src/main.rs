@@ -6,25 +6,24 @@
 // The poster of an `imported` event is not drawn here: the package `posters` handles pkg.media-hub.imported itself (its service poster-svc.py), so this
 // service never runs a host command for it.
 // The protocol has no timer, so the service is the timer (a worker thread). It starts no change on storage: that is a suggestion the person confirms.
-// Keys: only through `credential_for("media", <provider>)` ($CREDENTIALS_DIRECTORY/integration-media-<provider>), never argv or environment, never
+// The media apps (provider, address, header) come from `init.integrations` (`ctx.integrations()`), the core builds them: this service runs no `hs`.
+// Keys: only through `ctx.credential("media", <provider>)` ($CREDENTIALS_DIRECTORY/integration-media-<provider>), never argv or environment, never
 // logged, and a key goes only to the address of the provider it belongs to. Plain http only: an https address is named in the log, not polled.
-// Test knobs: HS_MEDIA_INTEGRATIONS (a file with the rows of the integration listing instead of `hs sys pkg integrations media`),
-// HS_MEDIA_STATE_DIR,
+// Test knobs: HS_MEDIA_STATE_DIR,
 // HS_MEDIA_POLL_SECONDS, HS_MEDIA_MIN_SECONDS (the shortest playback that counts, default 60).
 mod adapter;
 mod poll;
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::process::{Command, ExitCode, Stdio};
-use std::sync::{Arc, Mutex};
+use std::process::ExitCode;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use hobnix_ext_sdk::http::{Client, HttpError};
-use hobnix_ext_sdk::integrations;
-use hobnix_ext_sdk::service::{credential_for, run, Ctx, Health, Init, Service};
-use hobnix_ext_sdk::{Event, LogLevel};
+use hobnix_ext_sdk::service::{run, Health, Init, Service};
+use hobnix_ext_sdk::{Ctx, Event, LogLevel};
 use serde_json::{json, Map, Value};
 
 use poll::{clean, parse_apps, user_name, App, Finished, Playing, Poller};
@@ -40,35 +39,21 @@ fn now_secs() -> f64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
 }
 
-fn log(ctx: &Ctx, level: LogLevel, text: &str) {
+fn log(ctx: &dyn Ctx, level: LogLevel, text: &str) {
     let _ = ctx.log(level, text);
-}
-
-/// The rows of the integration listing.
-fn listing() -> Result<String, String> {
-    if let Some(f) = std::env::var_os("HS_MEDIA_INTEGRATIONS") {
-        return std::fs::read_to_string(&f).map_err(|e| format!("cannot read the listing: {e}"));
-    }
-    let out = Command::new("hs").args(["sys", "pkg", "integrations", "media"]).stdin(Stdio::null()).stderr(Stdio::null()).output();
-    match out {
-        Ok(o) if o.status.success() => Ok(String::from_utf8_lossy(&o.stdout).into_owned()),
-        Ok(o) => Err(format!("the integration listing failed ({})", o.status)),
-        Err(e) => Err(format!("cannot run hs: {e}")),
-    }
 }
 
 /// What the poller says about itself between rounds: it must not repeat a line every 30 seconds.
 #[derive(Default)]
 struct Said {
-    note: String,
     failed: HashMap<String, String>, // package -> the last failure that was logged
     keyless: HashSet<String>,
 }
 
 /// GET the sessions of one app with ITS key in its header. The key is read per call and never logged.
-fn fetch(ctx: &Ctx, said: &mut Said, app: &App) -> Option<String> {
+fn fetch(ctx: &dyn Ctx, said: &mut Said, app: &App) -> Option<String> {
     let ad = adapter::adapter(&app.package)?;
-    let Some(key) = credential_for("media", &app.package).filter(|k| !k.is_empty()) else {
+    let Some(key) = ctx.credential("media", &app.package).filter(|k| !k.is_empty()) else {
         if said.keyless.insert(app.package.clone()) {
             log(ctx, LogLevel::Warn, &format!("poller: no key handed over for {} (integration-media-{}): not polled", app.package, app.package));
         }
@@ -97,7 +82,7 @@ fn fetch(ctx: &Ctx, said: &mut Said, app: &App) -> Option<String> {
 }
 
 /// A finished playback: count it in the monthly rollup and write the event (the core does both; the rollup only for a metric kind of this package).
-fn record(ctx: &Ctx, f: &Finished) {
+fn record(ctx: &dyn Ctx, f: &Finished) {
     let user = user_name(&f.user);
     let title = clean(&f.title, 120);
     let mut payload = Map::new();
@@ -117,35 +102,35 @@ fn playing_json(p: &[Playing]) -> Value {
     json!({"sessions": p.iter().map(|s| json!({"app": s.app, "user": s.user, "title": s.title})).collect::<Vec<_>>()})
 }
 
+/// The poller says once which apps it polls and why it skips the others (the rows of the integrations do not change while the process runs).
+fn announce(ctx: &dyn Ctx, apps: &[App], why: &str) {
+    let names = apps.iter().map(|a| a.package.as_str()).collect::<Vec<_>>().join(", ");
+    let line = match (apps.is_empty(), why.is_empty()) {
+        (_, true) => format!("poller: polling {names}"),
+        (true, false) => format!("poller: {why}"),
+        (false, false) => format!("poller: polling {names} (not polled: {why})"),
+    };
+    log(ctx, if why.is_empty() { LogLevel::Info } else { LogLevel::Warn }, &line);
+}
+
+/// The lock of the health record; a poisoned lock still holds a usable record.
+fn lock(health: &Mutex<Health>) -> MutexGuard<'_, Health> {
+    health.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// The polling loop of the worker thread.
-fn worker(ctx: Ctx, health: Arc<Mutex<Health>>, state_dir: PathBuf, interval: f64, min_seconds: f64) {
+fn worker(ctx: Arc<dyn Ctx>, health: Arc<Mutex<Health>>, state_dir: PathBuf, interval: f64, min_seconds: f64) {
     let mut poller = Poller::new(state_dir, min_seconds);
     let mut said = Said::default();
     let mut last_playing: Option<Vec<Playing>> = None;
+    let (apps, why) = parse_apps(ctx.integrations());
+    announce(ctx.as_ref(), &apps, &why);
     loop {
-        let round = listing().map(|text| {
-            let (apps, why) = parse_apps(&integrations::parse(&text));
-            if why != said.note {
-                let names = apps.iter().map(|a| a.package.as_str()).collect::<Vec<_>>().join(", ");
-                let line = match (apps.is_empty(), why.is_empty()) {
-                    (_, true) => format!("poller: polling {names}"),
-                    (true, false) => format!("poller: {why}"),
-                    (false, false) => format!("poller: polling {names} (not polled: {why})"),
-                };
-                log(&ctx, if why.is_empty() { LogLevel::Info } else { LogLevel::Warn }, &line);
-                said.note = why;
-            }
-            poller.poll(&apps, now_secs(), &mut |a| fetch(&ctx, &mut said, a), &mut |f| record(&ctx, f))
-        });
-        *health.lock().unwrap() = match round {
-            Ok(playing) => {
-                if last_playing.as_ref() != Some(&playing) && ctx.snapshot("now-playing", playing_json(&playing)).is_ok() {
-                    last_playing = Some(playing);
-                }
-                Health::ok()
-            }
-            Err(e) => Health::degraded(format!("poll failed: {e}")),
-        };
+        let playing = poller.poll(&apps, now_secs(), &mut |a| fetch(ctx.as_ref(), &mut said, a), &mut |f| record(ctx.as_ref(), f));
+        if last_playing.as_ref() != Some(&playing) && ctx.snapshot("now-playing", playing_json(&playing)).is_ok() {
+            last_playing = Some(playing);
+        }
+        *lock(&health) = Health::ok();
         thread::sleep(Duration::from_secs_f64(interval));
     }
 }
@@ -155,22 +140,61 @@ struct Hub {
 }
 
 impl Service for Hub {
-    fn start(&mut self, _init: &Init, ctx: &Ctx) -> Result<(), String> {
+    fn start(&mut self, _init: &Init, ctx: &dyn Ctx) -> Result<(), String> {
         let interval = env_f64("HS_MEDIA_POLL_SECONDS", 30.0);
         if interval > 0.0 {
             let state_dir = PathBuf::from(std::env::var("HS_MEDIA_STATE_DIR").unwrap_or_else(|_| "/var/lib/hs/media-hub".into()));
-            let (ctx, health, min) = (ctx.clone(), self.health.clone(), env_f64("HS_MEDIA_MIN_SECONDS", 60.0));
+            let (ctx, health, min) = (ctx.shared(), self.health.clone(), env_f64("HS_MEDIA_MIN_SECONDS", 60.0));
             thread::spawn(move || worker(ctx, health, state_dir, interval.max(0.05), min));
         }
         Ok(())
     }
 
-    fn tick(&mut self, _ctx: &Ctx) -> Health {
-        let h = self.health.lock().unwrap();
+    fn tick(&mut self, _ctx: &dyn Ctx) -> Health {
+        let h = lock(&self.health);
         Health { ok: h.ok, text: h.text.clone() }
     }
 }
 
 fn main() -> ExitCode {
     run(Hub { health: Arc::new(Mutex::new(Health::ok())) })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hobnix_ext_sdk::integrations::Integration;
+    use hobnix_ext_sdk::testing::{Call, FakeCtx};
+
+    fn row(package: &str, url: &str) -> Integration {
+        Integration {
+            package: package.into(),
+            integration: "media".into(),
+            source: "recipe".into(),
+            api_url: Some(url.into()),
+            key_file: None,
+            extras: Default::default(),
+            key_header: None,
+        }
+    }
+
+    #[test]
+    fn a_provider_without_a_key_is_named_once_and_not_asked() {
+        let ctx = FakeCtx::new().with_integrations(vec![row("jellyfin", "http://127.0.0.1:1")]);
+        let (apps, why) = parse_apps(ctx.integrations());
+        assert!(why.is_empty());
+        let mut said = Said::default();
+        assert_eq!(fetch(&ctx, &mut said, &apps[0]), None);
+        assert_eq!(fetch(&ctx, &mut said, &apps[0]), None);
+        let warns = ctx.calls().into_iter().filter(|c| matches!(c, Call::Log(LogLevel::Warn, t) if t.contains("no key handed over for jellyfin")));
+        assert_eq!(warns.count(), 1);
+    }
+
+    #[test]
+    fn the_announcement_names_the_apps_and_the_reason() {
+        let ctx = FakeCtx::new().with_integrations(vec![row("jellyfin", "http://x"), row("radarr", "http://y")]);
+        let (apps, why) = parse_apps(ctx.integrations());
+        announce(&ctx, &apps, &why);
+        assert_eq!(ctx.calls(), [Call::Log(LogLevel::Warn, "poller: polling jellyfin (not polled: radarr has no adapter)".into())]);
+    }
 }

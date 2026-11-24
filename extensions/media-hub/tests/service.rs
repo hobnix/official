@@ -59,7 +59,7 @@ struct Svc {
 }
 
 impl Svc {
-    fn start(env: &[(&str, String)]) -> Svc {
+    fn start(env: &[(&str, String)], integrations: Value) -> Svc {
         let mut c = Command::new(env!("CARGO_BIN_EXE_media-svc"));
         c.env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit());
         for (k, v) in env {
@@ -76,7 +76,7 @@ impl Svc {
                 }
             }
         });
-        writeln!(stdin, "{}", json!({"v":1,"type":"init","name":"media-hub","lang":"en","subscribe":[],"health_interval":1})).unwrap();
+        writeln!(stdin, "{}", json!({"v":1,"type":"init","name":"media-hub","lang":"en","subscribe":[],"health_interval":1,"integrations":integrations})).unwrap();
         let mut svc = Svc { child, stdin, rx, seen: Vec::new() };
         svc.wait(|m| m["type"] == "ready");
         svc
@@ -112,16 +112,22 @@ fn is_log(text: &'static str) -> impl Fn(&Value) -> bool {
     move |m| m["type"] == "log" && m["text"].as_str().is_some_and(|t| t.contains(text))
 }
 
-fn env_for(dir: &Path, listing: &str, creds: &[(&str, &str)], poll: &str) -> Vec<(&'static str, String)> {
-    let int = dir.join("listing");
-    std::fs::write(&int, listing).unwrap();
+/// One entry of `init.integrations` as the core sends it: no key, no key file.
+fn row(package: &str, url: Option<String>, extras: Value, header: Option<&str>) -> Value {
+    json!({"package": package, "integration": "media", "source": "recipe", "api_url": url, "extras": extras, "key_header": header})
+}
+
+fn http(port: u16) -> Option<String> {
+    Some(format!("http://127.0.0.1:{port}"))
+}
+
+fn env_for(dir: &Path, creds: &[(&str, &str)], poll: &str) -> Vec<(&'static str, String)> {
     let cdir = dir.join("creds");
     std::fs::create_dir_all(&cdir).unwrap();
     for (n, k) in creds {
         std::fs::write(cdir.join(n), format!("{k}\n")).unwrap();
     }
     vec![
-        ("HS_MEDIA_INTEGRATIONS", int.display().to_string()),
         ("CREDENTIALS_DIRECTORY", cdir.display().to_string()),
         ("HS_MEDIA_STATE_DIR", dir.join("state").display().to_string()),
         ("HS_MEDIA_POLL_SECONDS", poll.into()),
@@ -133,13 +139,13 @@ fn env_for(dir: &Path, listing: &str, creds: &[(&str, &str)], poll: &str) -> Vec
 fn polls_jellyfin_with_its_own_key_and_counts_a_finished_playback() {
     let dir = scratch("poll");
     let jf = fake(&fixture("jellyfin-sessions.json"));
-    let listing = format!(
-        "jellyfin\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\tX-Emby-Token\n\
-         radarr\tmedia\trecipe\thttp://127.0.0.1:1\tok\tkind=movies\tX-Api-Key\n\
-         plex\tmedia\trecipe\thttps://plex.lan:32400\tok\t-\t-\n",
-        jf.port
-    );
-    let mut svc = Svc::start(&env_for(&dir, &listing, &[("integration-media-jellyfin", "JELLY-KEY"), ("integration-media-plex", "PLEX-KEY")], "0.2"));
+    let rows = json!([
+        row("jellyfin", http(jf.port), json!({}), Some("X-Emby-Token")),
+        row("radarr", Some("http://127.0.0.1:1".into()), json!({"kind": "movies"}), Some("X-Api-Key")),
+        row("plex", Some("https://plex.lan:32400".into()), json!({}), None),
+    ]);
+    let creds = [("integration-media-jellyfin", "JELLY-KEY"), ("integration-media-plex", "PLEX-KEY")];
+    let mut svc = Svc::start(&env_for(&dir, &creds, "0.2"), rows);
     let note = svc.wait(is_log("radarr has no adapter"));
     let t = note["text"].as_str().unwrap();
     assert!(t.contains("polling jellyfin") && t.contains("plex is at an https address") && t.contains("TlsUnsupported"), "{t}");
@@ -171,11 +177,9 @@ fn polls_jellyfin_with_its_own_key_and_counts_a_finished_playback() {
 fn polls_plex_in_its_own_header_next_to_jellyfin() {
     let dir = scratch("plex");
     let (jf, px) = (fake("[]"), fake(&fixture("plex-sessions.json")));
-    let listing = format!(
-        "jellyfin\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\t-\nplex\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\t-\n",
-        jf.port, px.port
-    );
-    let mut svc = Svc::start(&env_for(&dir, &listing, &[("integration-media-jellyfin", "JK"), ("integration-media-plex", "PK")], "0.2"));
+    let rows = json!([row("jellyfin", http(jf.port), json!({}), None), row("plex", http(px.port), json!({}), None)]);
+    let creds = [("integration-media-jellyfin", "JK"), ("integration-media-plex", "PK")];
+    let mut svc = Svc::start(&env_for(&dir, &creds, "0.2"), rows);
     let snap = svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| !s.is_empty()));
     assert_eq!(snap["data"]["sessions"][0], json!({"app": "plex", "user": "dora", "title": "Arrival"}));
     svc.stop();
@@ -188,10 +192,19 @@ fn polls_plex_in_its_own_header_next_to_jellyfin() {
 fn a_provider_without_a_key_is_not_asked() {
     let dir = scratch("nokey");
     let jf = fake(&fixture("jellyfin-sessions.json"));
-    let listing = format!("jellyfin\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\t-\n", jf.port);
-    let mut svc = Svc::start(&env_for(&dir, &listing, &[], "0.2"));
+    let rows = json!([row("jellyfin", http(jf.port), json!({}), None)]);
+    let mut svc = Svc::start(&env_for(&dir, &[], "0.2"), rows);
     svc.wait(is_log("no key handed over for jellyfin"));
     svc.wait(|m| m["type"] == "snapshot");
     svc.stop();
     assert!(jf.heads.lock().unwrap().is_empty(), "no key, no call");
+}
+
+#[test]
+fn an_init_without_integrations_polls_nothing() {
+    let dir = scratch("none");
+    let mut svc = Svc::start(&env_for(&dir, &[], "0.2"), json!([]));
+    svc.wait(is_log("no media app found"));
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.is_empty()));
+    svc.stop();
 }
