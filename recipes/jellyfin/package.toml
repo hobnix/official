@@ -1,0 +1,23 @@
+# Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
+# script still say the same (tests/pkg.sh keeps both in step).
+name = "jellyfin"
+version = "1.2.0"
+kind = "recipe"
+title = "watch your films, series and music in the browser, on the TV and on the phone"
+title_de = "Filme, Serien und Musik im Browser, auf dem Fernseher und auf dem Handy ansehen"
+requires_core = ">=6"
+permissions = ["host:incus", "net:internet", "fs.write:/bulk/shares", "devices:gpu"]
+audience = "generic"
+needs = ["share"]
+uses = ["gpu"]
+input = "none"
+script = "run.sh"
+runs = ["lxc", "docker"]
+
+# What Jellyfin offers to other packages (hobnix/core#926). The key file is the one `hs services key jellyfin` writes (the dashboard tile "Streams");
+# it exists only after an admin made an API key in Jellyfin and stored it that way, until then the key state reads "missing".
+[integrations.media]
+api_url = "http://{host}:8096"
+key_file = "/var/lib/hs/stat-jellyfin"
+key_header = "X-Emby-Token"
+kind = "player"
