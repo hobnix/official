@@ -12,7 +12,7 @@ set -euo pipefail
 #                    READ-WRITE at /media with a user "tdarr" mapped 1:1, so the
 #                    files stay adminuser's on disk. Jellyfin keeps only reading.
 #   rules            one Tdarr plugin of this server, "Homeserver: make it easy for
-#                    Jellyfin" (packages/tdarr/Tdarr_Plugin_hs_Jellyfin_Friendly.js):
+#                    Jellyfin" (recipes/tdarr/Tdarr_Plugin_hs_Jellyfin_Friendly.js):
 #                    - a language whose audio is only TrueHD / DTS gets an extra AC3
 #                      track, put first and marked default; the original stays behind it
 #                    - the video is never touched (copied bit for bit), except formats

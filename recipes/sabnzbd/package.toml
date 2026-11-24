@@ -1,5 +1,4 @@
-# Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
-# script still say the same (tests/pkg.sh keeps both in step).
+# Manifest of a package (docs/PLAN-packages.md).
 name = "sabnzbd"
 version = "1.2.0"
 kind = "recipe"
@@ -14,7 +13,7 @@ input = "none"
 script = "run.sh"
 runs = ["lxc", "docker"]
 
-# Events this package sends (hobnix/server#313; the helper hs-media-notify.py only emits them). Declared here, not in the core.
+# Events this package sends (hobnix/core#313; the helper hs-media-notify.py only emits them). Declared here, not in the core.
 [[events]]
 kind = "added"
 level = "info"

@@ -3,7 +3,7 @@
 # help.de: fremde Domains, die an Reverse-Proxys im LAN durchgereicht werden (über den Gateway-Proxy): anzeigen, Status, hinzufügen, entfernen, neu schreiben
 # args: list | status | add <domain> <address> [...] | remove <domain> [--confirm <domain>] | refresh | --list | --state | --status
 # Forwards <domain> and *.<domain> from the internet to a reverse proxy on the LAN that is not this server: TLS passthrough by SNI on the
-# public HTTPS port of the gateway proxy, plain HTTP by Host on its public HTTP port (capabilities/passthrough/NOTES.md). The work is
+# public HTTPS port of the gateway proxy, plain HTTP by Host on its public HTTP port (extensions/passthrough/NOTES.md). The work is
 # passthrough-change.sh's (plan, start); this script shows it to people.
 #   --list     domain TAB address TAB https TAB http TAB proxy (- for empty), no header (hs sys ext passthrough list)
 #   --state    domain TAB address TAB https_state TAB http_state: up|down by a 1 s TCP try, - when http is off
