@@ -90,3 +90,50 @@ jobs:
       name: github-pages
     steps:
       - uses: actions/deploy-pages@v4
+  # Alert (hobnix/core#1071): one issue "Index refresh failed" while the daily refresh is broken. Separate jobs with only issues: write, no
+  # environment and no access to INDEX_SIGNING_KEY. The schedule run only dispatches (job `daily`); the run that signs is the one on main.
+  # UNVERIFIED until a real failing run: not exercised.
+  alert-failure:
+    needs: [daily, build, sign, publish]
+    if: >-
+      failure() && github.event_name != 'pull_request' &&
+      (github.event_name == 'schedule' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          title="Index refresh failed"
+          body="The index run failed (event: $EVENT): $RUN_URL"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
+  alert-recovered:
+    needs: publish
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Index refresh failed"
+          numbers=$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number")
+          for number in $numbers; do
+            gh issue close "$number" --comment "Fixed: the index run succeeded again: $RUN_URL"
+          done
