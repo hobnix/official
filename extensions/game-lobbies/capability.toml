@@ -91,7 +91,7 @@ read = "checks"
 title = "Game lobbies"
 requires = "incus"
 
-# The page of the package: one place in the group Apps with three tabs (hobnix/server#790, docs/PLAN-package-pages.md). Not tested on hardware yet.
+# The page of the package: one place in the group Apps with three tabs (hobnix/core#790, docs/PLAN-package-pages.md). Not tested on hardware yet.
 [web.page]
 title = "Game lobbies"
 icon = "gamepad"

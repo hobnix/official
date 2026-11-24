@@ -1,5 +1,4 @@
-# Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
-# script still say the same (tests/pkg.sh keeps both in step).
+# Manifest of a package (docs/PLAN-packages.md).
 name = "upload-storage"
 version = "1.0.1"
 kind = "recipe"

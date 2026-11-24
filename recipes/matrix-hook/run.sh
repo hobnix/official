@@ -6,7 +6,7 @@
 # uses: -
 set -euo pipefail
 
-# What it does: installs a small webhook receiver (packages/matrix-hook/hs-matrix-hook.py and
+# What it does: installs a small webhook receiver (recipes/matrix-hook/hs-matrix-hook.py and
 # matrix-card/) into the container "synapse" as the service hs-matrix-hook, creates the Matrix
 # user hs-bot and writes the secret address to /var/lib/hs/matrix-hook. Radarr, Sonarr and Seerr
 # send a Webhook to http://<synapse>:<port>/hook/<secret>/<room>; the room (default "media") is

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks, route files and list of the extension passthrough (capabilities/passthrough/NOTES.md), standard library only.
+"""Checks, route files and list of the extension passthrough (extensions/passthrough/NOTES.md), standard library only.
 
   passthrough.py domain <d>                           normalised domain (lower case), or refuse
   passthrough.py address <a> --host-addrs F --instance-addrs F [--container-ok yes] [--domain d]

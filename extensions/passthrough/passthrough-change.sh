@@ -3,7 +3,7 @@
 # help.de: eine fremde Domain durchreichen oder nicht mehr durchreichen, ohne etwas zu fragen: was passieren würde (plan), dann ausführen (start)
 # args: plan|start <domain> add --address <a> [--https-port 443] [--http-port 80 | --no-http] [--proxy-protocol] [--container-ok] [--confirm <domain>] | plan|start <domain> remove [--confirm <domain>]
 # System command (hs sys ext passthrough plan|start): for the interface and tests. It never asks and prints key<TAB>value lines like
-# capabilities/games/pc-change.sh. The route files are rendered by passthrough.py and moved in through the gateway's tmp/ folder.
+# extensions/games/pc-change.sh. The route files are rendered by passthrough.py and moved in through the gateway's tmp/ folder.
 #   add     TLS passthrough by SNI on the public HTTPS port, plain HTTP by Host on the public HTTP port (not when --no-http or the
 #           gateway's public HTTP port is 0), optional PROXY protocol v2 on HTTPS. Without --address: status needs, needs<TAB>address (exit 2).
 #           A target that is an Incus container of this server (e.g. a reverse proxy in a container) is refused (reason names it) unless
