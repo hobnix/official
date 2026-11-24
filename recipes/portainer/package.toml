@@ -1,0 +1,26 @@
+# Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
+# script still say the same (tests/pkg.sh keeps both in step).
+name = "portainer"
+version = "1.0.0"
+kind = "recipe"
+title = "a web page to look after your Docker containers, images and stacks (admin page, never public)"
+title_de = "eine Webseite für deine Docker-Container, Images und Stacks (Verwaltungsseite, nie öffentlich)"
+requires_core = ">=9"
+permissions = ["host:incus", "net:internet"]
+audience = "generic"
+needs = ["docker"]
+uses = []
+input = "none"
+script = "run.sh"
+runs = ["docker"]
+provides = ["docker-manager"]
+description = "Portainer CE runs inside the Docker container and shows its containers, images and stacks. An install made before by the Docker setting is taken over as it is: same data, same port."
+icon = "ph:squares-four"
+category = "admin"
+upstream = "https://www.portainer.io"
+app_version = "2.45.4"
+
+# An admin page: it controls Docker. No public route, ever (scripts/services.py refuses one).
+[app.routes]
+default = "web"
+web = { port = 9000, scheme = "http", exposure = "never-public", admin = true }

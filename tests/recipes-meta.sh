@@ -30,7 +30,7 @@ for f in "$R"/*/run.sh; do
   check "$n: runs (header, optional, none = lxc) lists known words (lxc docker vm)" bash -c 'for w in $1; do case $w in lxc|docker|vm) ;; *) exit 1 ;; esac; done' _ "$runs"
   if [ -n "$runs" ]; then check "$n: the header runs agrees with package.toml" bash -c 'want=$(sed -n "s/^runs = //p" "$1/package.toml" | tr -d "[]\",") ; [ "$(echo $want)" = "$(echo $2)" ]' _ "$(dirname "$f")" "$runs"; fi
   has() { grep -qE "$1" "$f"; }
-  if has '^ *(install_docker|nvidia_docker)\b'; then d=yes; else d=no; fi
+  if has '^ *(install_docker|nvidia_docker)\b' || [ "$runs" = docker ]; then d=yes; else d=no; fi   # a recipe that only runs in docker needs the capability without installing Docker itself
   case " $needs " in *" docker "*) w=yes ;; *) w=no ;; esac
   [ "$n" = docker ] && continue   # it installs Docker: nobody needs it first
   check_eq "$n: 'needs docker' matches the script (install_docker)" "$d" "$w"
