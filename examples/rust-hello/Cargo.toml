@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 # The SDK is not published (publish = false in the core's workspace) and the core has no release tag that contains it yet: pinned by commit.
 # Raise `rev` together with Cargo.lock (`cargo update -p hobnix-ext-sdk`) when the core changes the protocol. Move to `tag = "vX.Y.Z"` once a core tag has it.
-hobnix-ext-sdk = { git = "https://github.com/hobnix/core", rev = "d50406c08aff9db9f95f5ce3a61f99262475e65a" }
+hobnix-ext-sdk = { git = "https://github.com/hobnix/core", rev = "40f331093fcdd66eaa4677e99af1132833255956" }
 serde_json = "1"
 
 # Own workspace root: the crate is built by itself, never as part of another folder's workspace.
