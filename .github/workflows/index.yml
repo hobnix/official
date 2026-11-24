@@ -1,0 +1,65 @@
+# Build, sign and publish the package index of hobnix/official (hobnix/core#1069, #1074). A caller of the shared workflow of the core.
+# Not run yet: this file has never run on GitHub.
+# - push to main: build, sign (environment `index-signing`, main only), publish to GitHub Pages. This is the "release" of official.
+# - pull_request: the `build` job only (the `sign` job has `if: github.ref == 'refs/heads/main'`, so it is skipped), nothing is published.
+# - schedule: daily; starts a workflow_dispatch run on main (see below).
+# - workflow_dispatch: run it by hand on main (the first signed index, or a re-sign).
+#
+# Pinned to a full commit SHA of hobnix/core, for the workflow AND for `core_ref` (the reusable workflow checks the core out at that ref and
+# verifies the signature against its config/trusted-keys/official.allowed_signers). This job runs with the signing key: a branch ref would let
+# any change merged to the core's develop run with the key without anyone looking at official. Bumping the pin is a reviewed pull request to
+# official, and that is how a core change reaches the signing job. The SHA is core develop with the key line (core PR #1182).
+# check.yml and dco.yml hold no secret and stay on the core's develop.
+#
+# Daily run and branch: GitHub starts a `schedule` on the DEFAULT branch (develop here), where `sign` never runs. So the schedule only starts the
+# job `daily`, which dispatches this workflow on main (`gh workflow run --ref main`, permission actions: write); that run signs. The `index` job
+# itself is skipped on a schedule event.
+#
+# No `secrets: inherit`: the called `sign` job declares `environment: index-signing` and, by GitHub's rules, reads INDEX_SIGNING_KEY from that
+# environment of THIS (the calling) repository, which only main may use. `secrets: inherit` passes repository and organisation secrets, not
+# environment secrets, so it would not help and would invite a repository-level copy of the key that any branch could read.
+# UNVERIFIED until the first run. If the secret does not reach the job, the fallback is a repository secret plus `secrets: inherit`, which
+# weakens the main-only rule (decide then).
+name: index
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: index-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write   # only to dispatch index.yml on main
+    steps:
+      - name: Start the index run on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run index.yml --ref main --repo "$GITHUB_REPOSITORY"
+  index:
+    if: github.event_name != 'schedule'
+    # pinned: update by a reviewed PR to official, never to a branch
+    uses: hobnix/core/.github/workflows/package-index.yml@010a286f387c48fa441768239fc1b534970196db
+    # the reusable workflow's publish job asks for these; a caller cannot give less than a called job needs
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    with:
+      repo_id: official
+      # pinned: update by a reviewed PR to official, never to a branch
+      core_ref: 010a286f387c48fa441768239fc1b534970196db
+      # GitHub Pages default URL of this repository; replace with the packages.hobnix.dev URL when #1071 is decided
+      pages_url: https://hobnix.github.io/official

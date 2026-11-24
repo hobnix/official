@@ -1,0 +1,36 @@
+name: dco
+# Every commit of a pull request needs a `Signed-off-by:` trailer (CONTRIBUTING.md "Sign your commits (DCO)"). Same rules as hobnix/core:
+# merge commits and bot commits are exempt; a pull request a maintainer labelled `agent-pr` is skipped (the maintainer who merges it takes the
+# responsibility). The check script is the core's (scripts/dev/dco-check.sh), fetched from its develop: this repository has no copy of it.
+# Not run yet.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dco-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  signoff:
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'agent-pr') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/checkout@v5
+        with:
+          repository: hobnix/core
+          ref: develop
+          path: core
+          sparse-checkout: scripts/dev/dco-check.sh
+      - name: Check Signed-off-by on every commit
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: bash core/scripts/dev/dco-check.sh "$BASE" "$HEAD"
