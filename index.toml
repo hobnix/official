@@ -20,7 +20,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.authentik]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/authentik"
 title = "one login for your services (AD accounts for you, local accounts for friends)"
