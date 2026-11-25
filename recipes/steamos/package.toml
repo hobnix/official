@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "steamos"
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 title = "play from the server on the TV or phone with Steam Remote Play, on the NVIDIA card"
 title_de = "Spiele vom Server auf Fernseher oder Handy spielen (Steam Remote Play), mit der NVIDIA-Karte"
@@ -11,3 +11,6 @@ needs = []
 uses = ["gpu"]
 input = "none"
 script = "run.sh"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
