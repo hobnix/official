@@ -50,11 +50,11 @@ jobs:
   build:
     if: github.event_name != 'schedule'
     # pinned: update by a reviewed PR to official, never to a branch
-    uses: hobnix/core/.github/workflows/package-index.yml@0e95ea55b789940071e19582337734d0188ebb96
+    uses: hobnix/core/.github/workflows/package-index.yml@3ddd2f14b35e552a7290cf594cee02e1cea77be8
     with:
       repo_id: official
       # pinned: update by a reviewed PR to official, never to a branch
-      core_ref: 0e95ea55b789940071e19582337734d0188ebb96
+      core_ref: 3ddd2f14b35e552a7290cf594cee02e1cea77be8
       # GitHub Pages default URL of this repository; replace with the packages.hobnix.dev URL when #1071 is decided
       pages_url: https://packages.hobnix.dev/official
   sign:
@@ -67,7 +67,7 @@ jobs:
         with:
           repository: hobnix/core
           # pinned: update by a reviewed PR to official, never to a branch
-          ref: 0e95ea55b789940071e19582337734d0188ebb96
+          ref: 3ddd2f14b35e552a7290cf594cee02e1cea77be8
           path: core
       - uses: actions/download-artifact@v4
         with:
