@@ -314,7 +314,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.zoraxy]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/zoraxy"
 title = "the reverse proxy that sends each public name to the right container"
