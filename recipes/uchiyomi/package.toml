@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "uchiyomi"
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 title = "a manga reader and downloader that watches for new chapters (webtoons and manhwa too)"
 title_de = "Manga-Leser und -Downloader, der nach neuen Kapiteln sucht (auch Webtoons und Manhwa)"
@@ -11,3 +11,6 @@ needs = ["docker", "share"]
 uses = []
 input = "none"
 script = "run.sh"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"

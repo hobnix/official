@@ -290,7 +290,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.uchiyomi]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/uchiyomi"
 title = "a manga reader and downloader that watches for new chapters (webtoons and manhwa too)"
