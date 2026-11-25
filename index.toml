@@ -52,7 +52,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.cloudflared]
-version = "1.1.1"
+version = "1.1.2"
 kind = "recipe"
 path = "recipes/cloudflared"
 title = "the Cloudflare Tunnel that makes chosen services reachable from the internet"

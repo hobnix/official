@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "cloudflared"
-version = "1.1.1"
+version = "1.1.2"
 kind = "recipe"
 title = "the Cloudflare Tunnel that makes chosen services reachable from the internet"
 title_de = "der Cloudflare-Tunnel, der ausgewählte Dienste aus dem Internet erreichbar macht"
@@ -16,3 +16,6 @@ script = "run.sh"
 key = "TOKEN"
 label = "Tunnel token (the long word starting with eyJ in the install command of the tunnel page; the whole command may be pasted)"
 type = "secret"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
