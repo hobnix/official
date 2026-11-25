@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "qbittorrent"
-version = "1.0.2"
+version = "1.0.3"
 kind = "recipe"
 title = "torrent downloader that can only reach the internet through your VPN (gluetun)"
 title_de = "Torrent-Downloader, der nur durch dein VPN ins Internet kommt (gluetun)"
@@ -56,3 +56,6 @@ key = "OV_PASS"
 label = "OpenVPN password"
 type = "secret"
 when = "VPN_TYPE=openvpn"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
