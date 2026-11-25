@@ -258,7 +258,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.stalwart]
-version = "1.1.1"
+version = "1.1.2"
 kind = "recipe"
 path = "recipes/stalwart"
 title = "your own mail server (SMTP, IMAP, JMAP, CalDAV/CardDAV) with a web admin page"
