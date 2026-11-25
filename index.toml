@@ -351,7 +351,7 @@ version = "0.1.0"
 kind = "extension"
 path = "extensions/media-hub"
 title = "Media hub: watch statistics from the media apps"
-requires_core = ">=10"
+requires_core = ">=11"
 audience = "generic"
 
 [package.passthrough]
@@ -367,6 +367,6 @@ version = "1.0.1"
 kind = "extension"
 path = "extensions/posters"
 title = "Posters drawn from the command line or the web interface"
-requires_core = ">=10"
+requires_core = ">=11"
 audience = "generic"
 

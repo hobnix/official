@@ -5,7 +5,7 @@ version = "1.0.1"
 kind = "extension"
 title = "Posters drawn from the command line or the web interface"
 title_de = "Poster aus der Kommandozeile oder der Weboberfläche"
-requires_core = ">=10"   # 10 = the [service] table
+requires_core = ">=11"   # 10 = the [service] table; 11 = state at $STATE_DIRECTORY (dynamic user)
 audience = "generic"
 # events.subscribe = the imported event of media-hub, which the service draws a poster for (hobnix/core#1129).
 permissions = ["web.read", "web.change", "fs.write:/var/lib/hs/posters", "events.subscribe:pkg.media-hub.imported"]
