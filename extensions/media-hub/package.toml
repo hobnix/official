@@ -25,7 +25,7 @@ health_interval = 30
 # commits program and hash. Until then `repo-check --release` and `hs pkg install` refuse this package (binary.unbuilt).
 [[binary]]
 path = "bin/media-svc"
-sha256 = ""
+sha256 = "65d1038dc29d6ef71b2d01544c2a74da34656968aabdb82a6bf1ed1a071efac8"
 bin = "media-svc"
 target = "x86_64-unknown-linux-musl"
 
