@@ -226,7 +226,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.radarr]
-version = "2.0.0"
+version = "2.0.1"
 kind = "recipe"
 path = "recipes/radarr"
 title = "keeps your films in order: searches them, sends the download to SABnzbd, files it in the library"

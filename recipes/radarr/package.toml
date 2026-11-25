@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "radarr"
-version = "2.0.0"
+version = "2.0.1"
 kind = "recipe"
 title = "keeps your films in order: searches them, sends the download to SABnzbd, files it in the library"
 title_de = "hält deine Filme in Ordnung: sucht sie, schickt den Download an SABnzbd, legt ihn in der Bibliothek ab"
@@ -19,3 +19,6 @@ api_url = "http://{host}:{port}"
 key_file = "/var/lib/hs/stat-radarr"
 key_header = "X-Api-Key"
 kind = "movies"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
