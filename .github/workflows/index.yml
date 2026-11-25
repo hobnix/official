@@ -56,7 +56,7 @@ jobs:
       # pinned: update by a reviewed PR to official, never to a branch
       core_ref: 0e95ea55b789940071e19582337734d0188ebb96
       # GitHub Pages default URL of this repository; replace with the packages.hobnix.dev URL when #1071 is decided
-      pages_url: https://hobnix.github.io/official
+      pages_url: https://packages.hobnix.dev/official
   sign:
     needs: build
     if: github.event_name != 'schedule' && github.ref == 'refs/heads/main'
