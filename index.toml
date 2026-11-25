@@ -68,7 +68,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.domain]
-version = "1.0.2"
+version = "1.0.3"
 kind = "recipe"
 path = "recipes/domain"
 title = "the domain controller for users and groups, and this server joined to it"

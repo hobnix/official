@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "domain"
-version = "1.0.2"
+version = "1.0.3"
 kind = "recipe"
 title = "the domain controller for users and groups, and this server joined to it"
 title_de = "der Domänencontroller für Benutzer und Gruppen, und dieser Server als Mitglied"
@@ -11,3 +11,6 @@ needs = []
 uses = []
 input = "terminal"
 script = "run.sh"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
