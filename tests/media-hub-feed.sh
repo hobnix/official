@@ -22,11 +22,9 @@ check "a [service] table that subscribes to nothing (posters draws the poster)" 
 check "the permission list stays small (no net, no host)" bash -c "! grep -E '^permissions' '$EXT/package.toml' | grep -q 'net:\\|host:'"
 check "the adapters say they are unverified" grep -q 'UNVERIFIED' "$EXT/src/adapter.rs"
 check "the service is the Rust program of a [[binary]] table" bash -c "grep -q '^exec = \"@/bin/media-svc\"' '$EXT/package.toml' && grep -q '^path = \"bin/media-svc\"' '$EXT/package.toml'"
-# the release preparation (branch release/prepare-*) and the release into main carry the built program on purpose (scripts/binary-check.py)
-case "${GITHUB_HEAD_REF:-}:${GITHUB_BASE_REF:-}" in
-  release/prepare-*:*|*:main) check "the release branch may carry the program" true ;;
-  *) check "no committed program in a feature branch (the release preparation builds it)" test ! -e "$EXT/bin/media-svc" ;;
-esac
+# a program committed outside the release preparation is refused by the rust workflow (scripts/binary-check.py guard), not here: develop and main hold it
+
+
 
 echo "-- storage suggestion"
 export HS_MEDIA_STATE_DIR=$(wp "$WORK/state")
