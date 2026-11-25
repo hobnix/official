@@ -109,7 +109,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.lidarr]
-version = "1.2.1"
+version = "1.2.2"
 kind = "recipe"
 path = "recipes/lidarr"
 title = "keeps your music in order: searches albums, sends the download to SABnzbd, files it in the library"

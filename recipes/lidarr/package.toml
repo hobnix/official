@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "lidarr"
-version = "1.2.1"
+version = "1.2.2"
 kind = "recipe"
 title = "keeps your music in order: searches albums, sends the download to SABnzbd, files it in the library"
 title_de = "hält deine Musik in Ordnung: sucht Alben, schickt den Download an SABnzbd, legt ihn in der Bibliothek ab"
@@ -12,3 +12,6 @@ uses = []
 input = "none"
 script = "run.sh"
 runs = ["lxc", "docker"]
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
