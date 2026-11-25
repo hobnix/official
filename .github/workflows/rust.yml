@@ -5,7 +5,8 @@ name: rust
 # Not part of the shared release workflow (hobnix/core#522): that one signs and tags; this one needs the crate sources of THIS repository.
 on:
   push:
-  pull_request:env:
+  pull_request:
+env:
   CARGO_HTTP_TIMEOUT: "60"
   CARGO_NET_RETRY: "5"
 jobs:
