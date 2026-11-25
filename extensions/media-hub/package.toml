@@ -1,7 +1,7 @@
 # Manifest of a package (docs/PLAN-packages.md). The rest of this extension is described by capability.toml beside it until the
 # packages move out of this repository.
 name = "media-hub"
-version = "0.1.0"
+version = "0.2.0"
 kind = "extension"
 title = "Media hub: watch statistics from the media apps"
 title_de = "Medien-Hub: Statistik aus den Medien-Apps"
@@ -65,3 +65,6 @@ icon = "arrow-fat-up"
 meaning = "a file was replaced by a better version (subject: the app)"
 retention = "audit"
 payload = ["title", "app?"]
+
+[meta]
+changes = "media-hub: read the integrations from init, run no hs; posters, media-hub: root writers give files back to the service, never through a link; media-hub and posters require core level 11"
