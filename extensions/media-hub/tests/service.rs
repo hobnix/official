@@ -8,7 +8,7 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
@@ -38,6 +38,9 @@ fn fake(body: &str) -> Fake {
     thread::spawn(move || {
         for s in l.incoming().flatten() {
             let mut s = s;
+            // a client that connects and says nothing must not block the next one for ever
+            let _ = s.set_read_timeout(Some(Duration::from_secs(5)));
+            let _ = s.set_write_timeout(Some(Duration::from_secs(5)));
             let mut head = Vec::new();
             let mut byte = [0u8; 1];
             while !head.ends_with(b"\r\n\r\n") && s.read(&mut byte).unwrap_or(0) == 1 {
@@ -56,6 +59,17 @@ struct Svc {
     stdin: ChildStdin,
     rx: Receiver<Value>,
     seen: Vec<Value>,
+}
+
+/// Hard limit for every wait on the service: it fails with the messages seen so far instead of waiting for ever.
+const DEADLINE: Duration = Duration::from_secs(20);
+
+impl Drop for Svc {
+    fn drop(&mut self) {
+        // the child never outlives the test, whether it passed, failed or timed out
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
 }
 
 impl Svc {
@@ -82,10 +96,13 @@ impl Svc {
         svc
     }
 
-    /// The next message that matches, within 10 seconds; every message read is kept in `seen`.
+    /// The next message that matches, within DEADLINE in total (the service sends a snapshot every poll, so a per-message timeout would never fire);
+    /// every message read is kept in `seen`.
     fn wait(&mut self, want: impl Fn(&Value) -> bool) -> Value {
+        let end = Instant::now() + DEADLINE;
         loop {
-            let m = self.rx.recv_timeout(Duration::from_secs(10)).unwrap_or_else(|_| panic!("no such message; seen: {:?}", self.seen));
+            let left = end.saturating_duration_since(Instant::now());
+            let m = self.rx.recv_timeout(left).unwrap_or_else(|_| panic!("no matching message within {DEADLINE:?}; seen: {:?}", self.seen));
             self.seen.push(m.clone());
             if want(&m) {
                 return m;
@@ -94,17 +111,25 @@ impl Svc {
     }
 
     fn send(&mut self, v: Value) {
-        writeln!(self.stdin, "{v}").unwrap();
+        // a service that already exited closes the pipe: that is for the waits to report, not a panic here
+        let _ = writeln!(self.stdin, "{v}");
     }
 
     fn stop(mut self) -> Vec<Value> {
         self.send(json!({"v":1,"type":"shutdown"}));
-        let status = self.child.wait().unwrap();
+        let end = Instant::now() + DEADLINE;
+        let status = loop {
+            if let Some(st) = self.child.try_wait().unwrap() {
+                break st;
+            }
+            assert!(Instant::now() < end, "the service did not exit within {DEADLINE:?} of shutdown; seen: {:?}", self.seen);
+            thread::sleep(Duration::from_millis(20));
+        };
         assert!(status.success(), "exit {status}");
         while let Ok(m) = self.rx.recv_timeout(Duration::from_millis(200)) {
             self.seen.push(m);
         }
-        self.seen
+        std::mem::take(&mut self.seen)
     }
 }
 
