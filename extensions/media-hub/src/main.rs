@@ -9,7 +9,7 @@
 // The media apps (provider, address, header) come from `init.integrations` (`ctx.integrations()`), the core builds them: this service runs no `hs`.
 // Keys: only through `ctx.credential("media", <provider>)` ($CREDENTIALS_DIRECTORY/integration-media-<provider>), never argv or environment, never
 // logged, and a key goes only to the address of the provider it belongs to. Plain http only: an https address is named in the log, not polled.
-// Test knobs: HS_MEDIA_STATE_DIR,
+// State folder: $STATE_DIRECTORY (systemd). Test knobs: HS_MEDIA_STATE_DIR,
 // HS_MEDIA_POLL_SECONDS, HS_MEDIA_MIN_SECONDS (the shortest playback that counts, default 60).
 mod adapter;
 mod poll;
@@ -135,6 +135,13 @@ fn worker(ctx: Arc<dyn Ctx>, health: Arc<Mutex<Health>>, state_dir: PathBuf, int
     }
 }
 
+/// The state folder: the test knob, else $STATE_DIRECTORY (set by systemd; /var/lib/hs-ext/media-hub inside the unit, where /var/lib/hs is empty).
+/// Never /var/lib/hs/media-hub: it does not exist in the unit. Several folders are joined by ':'; the first one is ours.
+fn state_dir_from(knob: Option<String>, systemd: Option<String>) -> Result<PathBuf, String> {
+    let pick = |v: Option<String>| v.and_then(|v| v.split(':').next().map(str::to_string)).filter(|v| !v.is_empty());
+    pick(knob).or_else(|| pick(systemd)).map(PathBuf::from).ok_or_else(|| "STATE_DIRECTORY is not set: the state folder of media-hub is unknown".to_string())
+}
+
 struct Hub {
     health: Arc<Mutex<Health>>,
 }
@@ -143,7 +150,7 @@ impl Service for Hub {
     fn start(&mut self, _init: &Init, ctx: &dyn Ctx) -> Result<(), String> {
         let interval = env_f64("HS_MEDIA_POLL_SECONDS", 30.0);
         if interval > 0.0 {
-            let state_dir = PathBuf::from(std::env::var("HS_MEDIA_STATE_DIR").unwrap_or_else(|_| "/var/lib/hs/media-hub".into()));
+            let state_dir = state_dir_from(std::env::var("HS_MEDIA_STATE_DIR").ok(), std::env::var("STATE_DIRECTORY").ok())?;
             let (ctx, health, min) = (ctx.shared(), self.health.clone(), env_f64("HS_MEDIA_MIN_SECONDS", 60.0));
             thread::spawn(move || worker(ctx, health, state_dir, interval.max(0.05), min));
         }
@@ -163,6 +170,15 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn state_dir_comes_from_the_unit_and_never_from_var_lib_hs() {
+        assert_eq!(state_dir_from(None, Some("/var/lib/hs-ext/media-hub".into())).unwrap(), PathBuf::from("/var/lib/hs-ext/media-hub"));
+        assert_eq!(state_dir_from(None, Some("/a:/b".into())).unwrap(), PathBuf::from("/a"));
+        assert_eq!(state_dir_from(Some("/t".into()), Some("/a".into())).unwrap(), PathBuf::from("/t"));
+        assert!(state_dir_from(None, None).unwrap_err().contains("STATE_DIRECTORY"));
+        assert!(state_dir_from(Some(String::new()), Some(String::new())).is_err());
+    }
     use hobnix_ext_sdk::integrations::Integration;
     use hobnix_ext_sdk::testing::{Call, FakeCtx};
 

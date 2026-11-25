@@ -8,4 +8,7 @@ An extension package (docs/PLAN-extensions.md): switch on with `hs ext enable po
 Service (hobnix/core#1129): `poster-svc.py` subscribes to `pkg.media-hub.imported` and draws a poster for the title of the event ("New in the library", seed = crc32 of the
 title, so the same title draws the same file and an event delivered twice does no harm). It calls `poster-change.sh start generate` directly, never `hs`: the media-hub
 service is confined and runs no host command, so the trigger lives here. A failed drawing is logged and the event is still acknowledged. Needs core API level 10.
+State folder (dynamic user, hobnix/core#1231): the pictures live in the state folder of the package. Inside the unit and in confined commands that is `$STATE_DIRECTORY`
+(`/var/lib/hs-ext/posters`; `/var/lib/hs` is empty there), which `poster-change.sh` uses; as root outside a unit it uses the link `/var/lib/hs-ext/posters` (an older install:
+`/var/lib/hs/posters`). Without any of them it refuses and names `STATE_DIRECTORY`. The `fs.write:/var/lib/hs/posters` permission stays as it is: it names the folder, not the path used.
 Not tested on hardware yet.

@@ -208,3 +208,22 @@ fn an_init_without_integrations_polls_nothing() {
     svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.is_empty()));
     svc.stop();
 }
+
+/// Inside the unit systemd sets STATE_DIRECTORY (/var/lib/hs-ext/media-hub) and nothing else names the folder: the list is kept there.
+#[test]
+fn keeps_watched_tsv_in_state_directory() {
+    let dir = scratch("statedir");
+    let jf = fake(&fixture("jellyfin-sessions.json"));
+    let rows = json!([row("jellyfin", http(jf.port), json!({}), Some("X-Emby-Token"))]);
+    let mut env = env_for(&dir, &[("integration-media-jellyfin", "JELLY-KEY")], "0.2");
+    env.retain(|(k, _)| *k != "HS_MEDIA_STATE_DIR");
+    env.push(("STATE_DIRECTORY", dir.join("unit-state").display().to_string()));
+    let mut svc = Svc::start(&env, rows);
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.len() == 2));
+    *jf.body.lock().unwrap() = "[]".into();
+    // the rollup is sent before watched.tsv is written: the snapshot after the poll is the first sign that the file is there
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.is_empty()));
+    svc.stop();
+    let w = std::fs::read_to_string(dir.join("unit-state/watched.tsv")).unwrap();
+    assert!(w.contains("Dune.mkv"), "{w}");
+}

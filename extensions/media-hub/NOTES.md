@@ -35,7 +35,7 @@ Second slice (needs core API level 10 for the `[service]` table):
 - **Poster:** an `imported` event (`pkg.media-hub.imported`, written by `record-import`; nothing writes it by itself yet) is handled by the package `posters`,
   not by this service: its service `poster-svc.py` subscribes to the event and draws the poster itself. media-svc runs no host command for it (inside the
   confined unit `hs` cannot see the package registry or the job store). If `posters` is off, nothing is drawn and nothing fails.
-- **Storage suggestion:** the service keeps `/var/lib/hs/media-hub/watched.tsv` (the file name and folder an app reported for each finished playback, newest 200).
+- **Storage suggestion:** the service keeps `watched.tsv` in its state folder (`$STATE_DIRECTORY`, `/var/lib/hs-ext/media-hub` inside the unit, where `/var/lib/hs` is empty; the service refuses to start without the variable; `media-suggest.sh`, a root tool, reaches it through the link `/var/lib/hs-ext/media-hub`, an older install `/var/lib/hs/media-hub`, and still opens everything in it without following links) (the file name and folder an app reported for each finished playback, newest 200).
   `hs sys ext media-hub suggestions` lists what was watched 30 or more days ago as a move from the smallest writable pool to the largest. The page shows
   it with a row action "Move..."; that opens the plan dialog (the file manager's own `plan move`), and only the start after the confirmation makes the
   background job (`fm.sh start move`). The service never starts one. The folder is the path the app reports (inside the app's container, probably) and is
