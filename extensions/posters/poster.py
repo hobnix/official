@@ -22,6 +22,7 @@ import os
 import random
 import re
 import sys
+import tempfile
 import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -176,6 +177,23 @@ def render(eyebrow, title, hue, sat_hint, seed, width, height):
     return img
 
 
+def save(img, path):
+    """Write the PNG into a new file beside `path`, then rename it over `path`. This runs as root in a folder another user may own: writing to `path`
+    itself would follow a link planted there; the rename replaces the link."""
+    fd, tmp = tempfile.mkstemp(prefix=".poster-", suffix=".png", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            img.save(fh, format="PNG", optimize=True)
+            umask = os.umask(0)
+            os.umask(umask)
+            if hasattr(os, "fchmod"):
+                os.fchmod(fh.fileno(), 0o666 & ~umask)   # the mode a normal new file gets (mkstemp makes 0600); on the descriptor, not the name
+        os.replace(tmp, path)
+    finally:
+        if os.path.lexists(tmp):
+            os.unlink(tmp)
+
+
 def main(argv):
     o = parse_args(argv)
     if o.get("list"):
@@ -230,7 +248,7 @@ def main(argv):
         return 2
     try:
         img = render(eyebrow, title, hue, sat_hint, seed, width, height)
-        img.save(path, optimize=True)
+        save(img, path)
     except OSError as e:
         refuse("cannot draw or write the poster: %s" % e, 2)
     out("status", "ok")
