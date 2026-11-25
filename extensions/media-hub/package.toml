@@ -5,7 +5,7 @@ version = "0.1.0"
 kind = "extension"
 title = "Media hub: watch statistics from the media apps"
 title_de = "Medien-Hub: Statistik aus den Medien-Apps"
-requires_core = ">=11"   # 10 = the [service] table; 11 = the first level after the core sends init.integrations and checks [[binary]]
+requires_core = ">=10"   # 7 = events and rollups; 10 = the [service] table
 audience = "generic"
 # integration:media = the right to ask for the API key of the media apps (integration_key, docs/PLAN-packages.md "Integrations"); the service reads it
 # to poll the sessions. web.change = the plan and start of the storage suggestion. fs.write = watched.tsv, the list of what was watched, which the

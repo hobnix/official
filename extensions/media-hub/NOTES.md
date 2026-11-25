@@ -1,7 +1,7 @@
 # media-hub
 
 Media statistics (hobnix/core#928, part of the 1.0 showcase #917): the media apps found through the integration `media`, watch minutes and plays per month, and a
-page that draws them. Off by default; switch on with `hs ext enable media-hub` (no rebuild). Needs a core of API level 11 or newer (the integrations in `init`, the checked program, the event retention classes and
+page that draws them. Off by default; switch on with `hs ext enable media-hub` (no rebuild). Needs core 0.12 (the integrations, the event retention classes and
 the rollup helper).
 
 First slice, and what it keeps:
