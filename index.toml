@@ -140,6 +140,14 @@ title = "Radarr, Sonarr, Seerr, the duplicate cleanup and SABnzbd post their eve
 requires_core = ">=1"
 audience = "generic"
 
+[package.minimal]
+version = "1.0.0"
+kind = "blueprint"
+path = "blueprints/minimal"
+title = "Minimal"
+requires_core = ">=11"
+audience = "generic"
+
 [package.monitoring]
 version = "1.0.1"
 kind = "recipe"
