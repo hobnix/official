@@ -93,7 +93,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.immich]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/immich"
 title = "your own photo and video library with phone backup, like Google Photos"

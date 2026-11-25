@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "immich"
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 title = "your own photo and video library with phone backup, like Google Photos"
 title_de = "deine eigene Foto- und Videosammlung mit Handy-Sicherung, wie Google Fotos"
@@ -11,3 +11,6 @@ needs = ["docker", "share"]
 uses = ["gpu"]
 input = "none"
 script = "run.sh"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"
