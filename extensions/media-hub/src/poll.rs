@@ -43,32 +43,30 @@ fn header_ok(h: &str) -> bool {
     c.next().is_some_and(|f| f.is_ascii_alphabetic()) && h.len() <= 40 && c.all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
-/// (apps, note) from the rows of `hs sys pkg integrations media`: apps = every provider that can be polled, note = why the others cannot.
-/// The key state is the column the SDK calls `key_file` (`-` = the provider has no key: not named). A row without a `key_header` gets the header of
+/// (apps, note) from the rows of `init.integrations`: apps = every provider that can be polled, note = why the others cannot.
+/// The rows carry no key and no key state: whether a provider has a key is found when it is asked (`fetch` in main.rs). A row without a `key_header` gets the header of
 /// the adapter (the listing's default X-Api-Key is not what Jellyfin or Plex read). `https://` is named per provider: the SDK client speaks plain http.
 pub fn parse_apps(rows: &[Integration]) -> (Vec<App>, String) {
     let (mut apps, mut notes) = (Vec::new(), Vec::new());
     for r in rows.iter().filter(|r| r.integration == "media") {
-        let Some(state) = r.key_file.as_deref() else { continue };
         let Some(ad) = adapter(&r.package) else {
             notes.push(format!("{} has no adapter", r.package));
             continue;
         };
-        match (state, r.api_url.as_deref()) {
-            (s, _) if s != "ok" => notes.push(format!("the key of {} is {s}", r.package)),
-            (_, None) => notes.push(format!("{} has no address", r.package)),
-            (_, Some(u)) if u.starts_with("https://") => {
+        match r.api_url.as_deref() {
+            None => notes.push(format!("{} has no address", r.package)),
+            Some(u) if u.starts_with("https://") => {
                 notes.push(format!("{} is at an https address, the SDK client speaks plain http only (TlsUnsupported)", r.package))
             }
-            (_, Some(u)) if !u.starts_with("http://") => notes.push(format!("{} has no http address", r.package)),
-            (_, Some(u)) => {
+            Some(u) if !u.starts_with("http://") => notes.push(format!("{} has no http address", r.package)),
+            Some(u) => {
                 let h = r.key_header.as_deref().filter(|h| header_ok(h)).unwrap_or(ad.header);
                 apps.push(App { package: r.package.clone(), url: u.to_string(), header: h.to_string() });
             }
         }
     }
     if apps.is_empty() && notes.is_empty() {
-        notes.push("no media app with a key found".into());
+        notes.push("no media app found".into());
     }
     (apps, notes.join("; "))
 }
@@ -211,6 +209,7 @@ mod tests {
         std::fs::read_to_string(p).expect("fixture")
     }
 
+    /// Rows in the text form of the SDK parser; the `key_file` column (`ok` here) is not read by `parse_apps`, as `init.integrations` has none.
     fn rows(text: &str) -> Vec<Integration> {
         hobnix_ext_sdk::integrations::parse(text)
     }
@@ -237,11 +236,10 @@ mod tests {
 
     #[test]
     fn why_a_provider_is_not_polled() {
-        assert_eq!(parse_apps(&rows("jellyfin\tmedia\trecipe\thttp://x\tlocked\t-\t-\n")), (vec![], "the key of jellyfin is locked".into()));
-        assert_eq!(parse_apps(&rows("jellyfin\tmedia\trecipe\thttp://x\t-\t-\t-\n")), (vec![], "no media app with a key found".into()));
-        let (apps, why) = parse_apps(&rows("plex\tmedia\trecipe\thttps://plex.lan:32400\tok\t-\t-\n"));
+        assert_eq!(parse_apps(&[]), (vec![], "no media app found".into()));
+        let (apps, why) = parse_apps(&rows("plex\tmedia\trecipe\thttps://plex.lan:32400\t-\t-\t-\n"));
         assert!(apps.is_empty() && why.contains("plex is at an https address") && why.contains("TlsUnsupported"), "{why}");
-        assert_eq!(parse_apps(&rows("plex\tmedia\trecipe\t-\tok\t-\t-\n")).1, "plex has no address");
+        assert_eq!(parse_apps(&rows("plex\tmedia\trecipe\t-\t-\t-\t-\n")).1, "plex has no address");
     }
 
     #[test]

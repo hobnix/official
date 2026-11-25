@@ -16,7 +16,7 @@ set -euo pipefail
 #   you           log in with your AD account: an LDAP source pointing at the
 #                 domain controller (dc1); the closing text lists the values
 #   friends       local users made in Authentik (Directory -> Users), no AD account
-#   Pelican       signs in through Authentik (OIDC), see packages/authentik/guide.md
+#   Pelican       signs in through Authentik (OIDC), see recipes/authentik/guide.md
 # The recipe does NOT touch Zoraxy: only the login page of Authentik gets a
 # rule (the closing text says which), never an admin page of this server.
 # Test knobs: RECIPE_NAME=<throwaway name> HS_STATE_DIR=/tmp/<dir>

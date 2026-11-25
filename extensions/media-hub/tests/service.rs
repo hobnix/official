@@ -8,7 +8,7 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
@@ -38,6 +38,9 @@ fn fake(body: &str) -> Fake {
     thread::spawn(move || {
         for s in l.incoming().flatten() {
             let mut s = s;
+            // a client that connects and says nothing must not block the next one for ever
+            let _ = s.set_read_timeout(Some(Duration::from_secs(5)));
+            let _ = s.set_write_timeout(Some(Duration::from_secs(5)));
             let mut head = Vec::new();
             let mut byte = [0u8; 1];
             while !head.ends_with(b"\r\n\r\n") && s.read(&mut byte).unwrap_or(0) == 1 {
@@ -58,8 +61,19 @@ struct Svc {
     seen: Vec<Value>,
 }
 
+/// Hard limit for every wait on the service: it fails with the messages seen so far instead of waiting for ever.
+const DEADLINE: Duration = Duration::from_secs(20);
+
+impl Drop for Svc {
+    fn drop(&mut self) {
+        // the child never outlives the test, whether it passed, failed or timed out
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
 impl Svc {
-    fn start(env: &[(&str, String)]) -> Svc {
+    fn start(env: &[(&str, String)], integrations: Value) -> Svc {
         let mut c = Command::new(env!("CARGO_BIN_EXE_media-svc"));
         c.env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit());
         for (k, v) in env {
@@ -76,16 +90,19 @@ impl Svc {
                 }
             }
         });
-        writeln!(stdin, "{}", json!({"v":1,"type":"init","name":"media-hub","lang":"en","subscribe":[],"health_interval":1})).unwrap();
+        writeln!(stdin, "{}", json!({"v":1,"type":"init","name":"media-hub","lang":"en","subscribe":[],"health_interval":1,"integrations":integrations})).unwrap();
         let mut svc = Svc { child, stdin, rx, seen: Vec::new() };
         svc.wait(|m| m["type"] == "ready");
         svc
     }
 
-    /// The next message that matches, within 10 seconds; every message read is kept in `seen`.
+    /// The next message that matches, within DEADLINE in total (the service sends a snapshot every poll, so a per-message timeout would never fire);
+    /// every message read is kept in `seen`.
     fn wait(&mut self, want: impl Fn(&Value) -> bool) -> Value {
+        let end = Instant::now() + DEADLINE;
         loop {
-            let m = self.rx.recv_timeout(Duration::from_secs(10)).unwrap_or_else(|_| panic!("no such message; seen: {:?}", self.seen));
+            let left = end.saturating_duration_since(Instant::now());
+            let m = self.rx.recv_timeout(left).unwrap_or_else(|_| panic!("no matching message within {DEADLINE:?}; seen: {:?}", self.seen));
             self.seen.push(m.clone());
             if want(&m) {
                 return m;
@@ -94,17 +111,25 @@ impl Svc {
     }
 
     fn send(&mut self, v: Value) {
-        writeln!(self.stdin, "{v}").unwrap();
+        // a service that already exited closes the pipe: that is for the waits to report, not a panic here
+        let _ = writeln!(self.stdin, "{v}");
     }
 
     fn stop(mut self) -> Vec<Value> {
         self.send(json!({"v":1,"type":"shutdown"}));
-        let status = self.child.wait().unwrap();
+        let end = Instant::now() + DEADLINE;
+        let status = loop {
+            if let Some(st) = self.child.try_wait().unwrap() {
+                break st;
+            }
+            assert!(Instant::now() < end, "the service did not exit within {DEADLINE:?} of shutdown; seen: {:?}", self.seen);
+            thread::sleep(Duration::from_millis(20));
+        };
         assert!(status.success(), "exit {status}");
         while let Ok(m) = self.rx.recv_timeout(Duration::from_millis(200)) {
             self.seen.push(m);
         }
-        self.seen
+        std::mem::take(&mut self.seen)
     }
 }
 
@@ -112,16 +137,22 @@ fn is_log(text: &'static str) -> impl Fn(&Value) -> bool {
     move |m| m["type"] == "log" && m["text"].as_str().is_some_and(|t| t.contains(text))
 }
 
-fn env_for(dir: &Path, listing: &str, creds: &[(&str, &str)], poll: &str) -> Vec<(&'static str, String)> {
-    let int = dir.join("listing");
-    std::fs::write(&int, listing).unwrap();
+/// One entry of `init.integrations` as the core sends it: no key, no key file.
+fn row(package: &str, url: Option<String>, extras: Value, header: Option<&str>) -> Value {
+    json!({"package": package, "integration": "media", "source": "recipe", "api_url": url, "extras": extras, "key_header": header})
+}
+
+fn http(port: u16) -> Option<String> {
+    Some(format!("http://127.0.0.1:{port}"))
+}
+
+fn env_for(dir: &Path, creds: &[(&str, &str)], poll: &str) -> Vec<(&'static str, String)> {
     let cdir = dir.join("creds");
     std::fs::create_dir_all(&cdir).unwrap();
     for (n, k) in creds {
         std::fs::write(cdir.join(n), format!("{k}\n")).unwrap();
     }
     vec![
-        ("HS_MEDIA_INTEGRATIONS", int.display().to_string()),
         ("CREDENTIALS_DIRECTORY", cdir.display().to_string()),
         ("HS_MEDIA_STATE_DIR", dir.join("state").display().to_string()),
         ("HS_MEDIA_POLL_SECONDS", poll.into()),
@@ -133,13 +164,13 @@ fn env_for(dir: &Path, listing: &str, creds: &[(&str, &str)], poll: &str) -> Vec
 fn polls_jellyfin_with_its_own_key_and_counts_a_finished_playback() {
     let dir = scratch("poll");
     let jf = fake(&fixture("jellyfin-sessions.json"));
-    let listing = format!(
-        "jellyfin\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\tX-Emby-Token\n\
-         radarr\tmedia\trecipe\thttp://127.0.0.1:1\tok\tkind=movies\tX-Api-Key\n\
-         plex\tmedia\trecipe\thttps://plex.lan:32400\tok\t-\t-\n",
-        jf.port
-    );
-    let mut svc = Svc::start(&env_for(&dir, &listing, &[("integration-media-jellyfin", "JELLY-KEY"), ("integration-media-plex", "PLEX-KEY")], "0.2"));
+    let rows = json!([
+        row("jellyfin", http(jf.port), json!({}), Some("X-Emby-Token")),
+        row("radarr", Some("http://127.0.0.1:1".into()), json!({"kind": "movies"}), Some("X-Api-Key")),
+        row("plex", Some("https://plex.lan:32400".into()), json!({}), None),
+    ]);
+    let creds = [("integration-media-jellyfin", "JELLY-KEY"), ("integration-media-plex", "PLEX-KEY")];
+    let mut svc = Svc::start(&env_for(&dir, &creds, "0.2"), rows);
     let note = svc.wait(is_log("radarr has no adapter"));
     let t = note["text"].as_str().unwrap();
     assert!(t.contains("polling jellyfin") && t.contains("plex is at an https address") && t.contains("TlsUnsupported"), "{t}");
@@ -171,11 +202,9 @@ fn polls_jellyfin_with_its_own_key_and_counts_a_finished_playback() {
 fn polls_plex_in_its_own_header_next_to_jellyfin() {
     let dir = scratch("plex");
     let (jf, px) = (fake("[]"), fake(&fixture("plex-sessions.json")));
-    let listing = format!(
-        "jellyfin\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\t-\nplex\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\t-\n",
-        jf.port, px.port
-    );
-    let mut svc = Svc::start(&env_for(&dir, &listing, &[("integration-media-jellyfin", "JK"), ("integration-media-plex", "PK")], "0.2"));
+    let rows = json!([row("jellyfin", http(jf.port), json!({}), None), row("plex", http(px.port), json!({}), None)]);
+    let creds = [("integration-media-jellyfin", "JK"), ("integration-media-plex", "PK")];
+    let mut svc = Svc::start(&env_for(&dir, &creds, "0.2"), rows);
     let snap = svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| !s.is_empty()));
     assert_eq!(snap["data"]["sessions"][0], json!({"app": "plex", "user": "dora", "title": "Arrival"}));
     svc.stop();
@@ -188,10 +217,38 @@ fn polls_plex_in_its_own_header_next_to_jellyfin() {
 fn a_provider_without_a_key_is_not_asked() {
     let dir = scratch("nokey");
     let jf = fake(&fixture("jellyfin-sessions.json"));
-    let listing = format!("jellyfin\tmedia\trecipe\thttp://127.0.0.1:{}\tok\t-\t-\n", jf.port);
-    let mut svc = Svc::start(&env_for(&dir, &listing, &[], "0.2"));
+    let rows = json!([row("jellyfin", http(jf.port), json!({}), None)]);
+    let mut svc = Svc::start(&env_for(&dir, &[], "0.2"), rows);
     svc.wait(is_log("no key handed over for jellyfin"));
     svc.wait(|m| m["type"] == "snapshot");
     svc.stop();
     assert!(jf.heads.lock().unwrap().is_empty(), "no key, no call");
+}
+
+#[test]
+fn an_init_without_integrations_polls_nothing() {
+    let dir = scratch("none");
+    let mut svc = Svc::start(&env_for(&dir, &[], "0.2"), json!([]));
+    svc.wait(is_log("no media app found"));
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.is_empty()));
+    svc.stop();
+}
+
+/// Inside the unit systemd sets STATE_DIRECTORY (/var/lib/hs-ext/media-hub) and nothing else names the folder: the list is kept there.
+#[test]
+fn keeps_watched_tsv_in_state_directory() {
+    let dir = scratch("statedir");
+    let jf = fake(&fixture("jellyfin-sessions.json"));
+    let rows = json!([row("jellyfin", http(jf.port), json!({}), Some("X-Emby-Token"))]);
+    let mut env = env_for(&dir, &[("integration-media-jellyfin", "JELLY-KEY")], "0.2");
+    env.retain(|(k, _)| *k != "HS_MEDIA_STATE_DIR");
+    env.push(("STATE_DIRECTORY", dir.join("unit-state").display().to_string()));
+    let mut svc = Svc::start(&env, rows);
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.len() == 2));
+    *jf.body.lock().unwrap() = "[]".into();
+    // the rollup is sent before watched.tsv is written: the snapshot after the poll is the first sign that the file is there
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.is_empty()));
+    svc.stop();
+    let w = std::fs::read_to_string(dir.join("unit-state/watched.tsv")).unwrap();
+    assert!(w.contains("Dune.mkv"), "{w}");
 }

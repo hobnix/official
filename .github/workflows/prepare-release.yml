@@ -6,6 +6,8 @@
 # commits programs and hashes in ONE commit apart from the version bump, pushes the branch and appends the table (path, size, sha256, source
 # commit) to the pull request body. With no crate under extensions/ it does nothing. Nobody reviews a binary: those checks are the safeguard.
 # Not run yet. A push with the workflow token starts no `check` run: push an empty commit or reopen the pull request by hand (owner).
+# GitHub did not register this file from the repository's first push (it has no `push` or `pull_request` trigger, so no run ever named it) and
+# `gh workflow run` answered 404. If a new workflow_dispatch-only file is missing from the Actions list, merge a change to it into `develop`.
 name: prepare-release
 on:
   workflow_dispatch:
@@ -18,11 +20,14 @@ jobs:
   binaries:
     needs: prepare
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
     env:
       GH_TOKEN: ${{ github.token }}
+      CARGO_HTTP_TIMEOUT: "60"
+      CARGO_NET_RETRY: "5"
     steps:
       - uses: actions/checkout@v4
         with:

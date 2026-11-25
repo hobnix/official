@@ -3,23 +3,32 @@
 # help.de: Poster für die Weboberfläche zeichnen und aufbewahren: auflisten, eines machen (plan, dann start), eines löschen
 # args: list | plan|start generate --eyebrow <text> --title <text> [--color <name|#rrggbb>] [--seed <n>] [--case upper|keep] | plan|start delete <file>
 # System command (hs sys ext posters list | hs sys ext posters plan|start): for the interface and tests. It never asks. The drawing is generate-poster.sh's
-# (poster.py beside it, Pillow); this script only keeps the pictures in one folder ($HS_STATE_DIR/posters, root only is not needed: they are no secret)
+# (poster.py beside it, Pillow); this script only keeps the pictures in one folder ($STATE_DIRECTORY, root only is not needed: they are no secret)
 # and checks what the web page sends.
 #   list                       one row per poster, newest first: file, bytes, modified (epoch)
 #   generate ...               draw a poster; start prints status done and the file, color, seed and size the drawing reported
 #   delete <file>              remove one poster from the folder
 # plan: exit 0 = allowed, 1 = refused. Output: status ok|refused, reason<TAB><text>, heading|step|note<TAB><line>, long<TAB>no.
 # start: the same checks, then the work; status done (+ file, color, seed, size for generate) or refused.
-# Test knobs: HS_POSTER_DIR, HS_POSTER_GEN (stand-in for generate-poster.sh), HS_STATE_DIR.
+# Test knobs: HS_POSTER_DIR, HS_POSTER_GEN (stand-in for generate-poster.sh), HS_EXT_DIR, HS_STATE_DIR.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
-dir=${HS_POSTER_DIR:-${HS_STATE_DIR:-/var/lib/hs}/posters}
+# The folder of the pictures is the state folder of the package. In the service unit and in confined commands it is $STATE_DIRECTORY (set by systemd,
+# /var/lib/hs-ext/posters; /var/lib/hs is empty there). Run as root outside a unit it is reached through the root-side link /var/lib/hs-ext/posters
+# (an older install: /var/lib/hs/posters). No path of /var/lib/hs is assumed inside the unit.
+dir=${HS_POSTER_DIR:-}
+if [ -z "$dir" ] && [ -n "${STATE_DIRECTORY:-}" ]; then dir=${STATE_DIRECTORY%%:*}; fi
+if [ -z "$dir" ]; then
+  for c in "${HS_EXT_DIR:-/var/lib/hs-ext}/posters" "${HS_STATE_DIR:-/var/lib/hs}/posters"; do
+    if [ -d "$c" ]; then dir=$c; break; fi
+  done
+fi
 gen=${HS_POSTER_GEN:-$here/generate-poster.sh}
 
 refuse() { printf 'status\trefused\nreason\t%s\n' "$1"; exit 1; }
 
 if [ "${1:-}" = list ]; then
-  [ -d "$dir" ] || exit 0
+  [ -n "$dir" ] && [ -d "$dir" ] || exit 0
   for f in "$dir"/poster-*.png; do
     [ -f "$f" ] || continue
     printf '%s\t%s\t%s\n' "$(basename "$f")" "$(stat -c %s "$f")" "$(stat -c %Y "$f")"
@@ -34,7 +43,9 @@ shift 2 || true
 
 NAME_RE='^poster-[A-Za-z0-9._-]{1,120}\.png$'
 
+nodir='The state folder of posters is not known: $STATE_DIRECTORY is not set and there is no /var/lib/hs-ext/posters (start the service once).'
 if [ "$action" = delete ]; then
+  [ -n "$dir" ] || refuse "$nodir"
   f=${1:-}; [ $# -eq 1 ] || refuse "delete needs one file name"
   [[ "$f" =~ $NAME_RE ]] && [[ "$f" != *..* ]] || refuse "that is not a poster file name"
   [ -f "$dir/$f" ] || refuse "There is no poster $f."
@@ -71,6 +82,7 @@ if [ "$verb" = plan ]; then
   exit 0
 fi
 
+[ -n "$dir" ] || refuse "$nodir"
 mkdir -p "$dir"
 args=(--eyebrow "$eyebrow" --title "$title" --case "$case_" --out "$dir" --force)
 [ -z "$color" ] || args+=(--color "$color")
@@ -84,6 +96,8 @@ if [ "$rc" -ne 0 ]; then
 fi
 file=$(awk -F'\t' '$1 == "file" { print $2; exit }' <<<"$out")
 [ -n "$file" ] || refuse "the poster could not be drawn"
+# run as root, the folder belongs to the user of the service (hobnix/core#1134): give the picture back to it. -h: never what a link names
+chown -h --reference="$dir" "$dir/$(basename "$file")" 2>/dev/null || true
 printf 'status\tdone\nfile\t%s\n' "$(basename "$file")"
 awk -F'\t' '$1 == "color" || $1 == "seed" || $1 == "size" { print }' <<<"$out"
 exit 0

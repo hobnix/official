@@ -1,7 +1,6 @@
-# Manifest of a package (docs/PLAN-packages.md). Until the packages move out of this repository the header lines of the
-# script still say the same (tests/pkg.sh keeps both in step).
+# Manifest of a package (docs/PLAN-packages.md).
 name = "zoraxy"
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 title = "the reverse proxy that sends each public name to the right container"
 title_de = "der Reverse-Proxy, der jeden öffentlichen Namen zum richtigen Container schickt"
@@ -12,3 +11,6 @@ needs = []
 uses = []
 input = "none"
 script = "run.sh"
+
+[meta]
+changes = "zoraxy: pin the release and check its sha256"

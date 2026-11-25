@@ -22,7 +22,7 @@ scripts=${HS_SCRIPTS:-$here/../../scripts}   # the core helpers; hs and hs-web s
 . "$scripts/lib/ui.sh"
 state=${HS_STATE_DIR:-/var/lib/hs}/games
 file=$state/pcs
-# Since core 0.8 (hobnix/server#947) the state lives in /var/lib/hs/games/ (the unit may write only its own folder): move the old file once
+# Since core 0.8 (hobnix/core#947) the state lives in /var/lib/hs/games/ (the unit may write only its own folder): move the old file once
 legacy=${HS_STATE_DIR:-/var/lib/hs}/pcs
 if [ -f "$legacy" ] && [ ! -e "$file" ]; then mkdir -p "$(dirname "$file")" && mv "$legacy" "$file" || true; fi
 

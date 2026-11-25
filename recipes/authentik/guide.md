@@ -86,7 +86,7 @@ Put it in front of the Panel by OIDC, not as a forward-auth page: Wings calls th
 The Panel fetches the login from its container through `https://auth.example.com`, so that address must be reachable from there.
 
 ## Look of the login page
-`brand/` in the package folder (`packages/authentik/brand/`) holds ready files (`logo.svg`, favicons, light and dark halftone backgrounds). Upload them under **Customization > Files**, then under **Customization > Brands** edit the brand for your address: title, logo, favicon and the default flow background (`background-%(theme)s.png` for light and dark). Reload with Ctrl+F5: browsers keep favicons stubbornly.
+`brand/` in the package folder (`recipes/authentik/brand/`) holds ready files (`logo.svg`, favicons, light and dark halftone backgrounds). Upload them under **Customization > Files**, then under **Customization > Brands** edit the brand for your address: title, logo, favicon and the default flow background (`background-%(theme)s.png` for light and dark). Reload with Ctrl+F5: browsers keep favicons stubbornly.
 
 ## Check that it worked
 - A private browser window: forwarded to the login, then the service. A user outside the group is refused. `curl -i` without a login never shows the service.

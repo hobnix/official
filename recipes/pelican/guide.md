@@ -76,7 +76,7 @@ sudo hs ct pelican-panel snapshot
 ```
 
 ## Update and remove
-- Update: raise the pins at the top of `packages/pelican/run.sh` (or install a newer package version with `hs pkg update pelican`), then run `sudo hs recipe pelican`. It downloads only what differs from the last run.
+- Update: raise the pins at the top of `recipes/pelican/run.sh` (or install a newer package version with `hs pkg update pelican`), then run `sudo hs recipe pelican`. It downloads only what differs from the last run.
 - Remove: `sudo hs ct pelican-wings remove` and `sudo hs ct pelican-panel remove` each ask you to type the name and delete the container with its data (game servers, the Panel's database). Backups in `/bulk/sensitive/pelican-backups` stay.
 
 ## Check that it worked

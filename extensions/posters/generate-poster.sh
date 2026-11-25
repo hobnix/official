@@ -16,7 +16,8 @@ cat "$tmp"
 # run as root (hs does): the picture belongs to whoever owns its folder (the person's own folder, a share's owner), not to root
 file=$(awk -F'\t' '$1 == "file" { print $2; exit }' "$tmp")
 if [ "$rc" = 0 ] && [ -n "$file" ] && [ "$(id -u)" = 0 ]; then
-  owner=$(stat -c '%u:%g' "$(dirname "$file")" 2>/dev/null || true)
-  [ -z "$owner" ] || chown "$owner" "$file" 2>/dev/null || true
+  # -L: the folder may be a link (the state folder of a service); -h: never change what a link in its place names
+  owner=$(stat -L -c '%u:%g' "$(dirname "$file")" 2>/dev/null || true)
+  [ -z "$owner" ] || chown -h "$owner" "$file" 2>/dev/null || true
 fi
 exit "$rc"
