@@ -60,7 +60,7 @@ requires_core = ">=3"
 audience = "personal"
 
 [package.configarr]
-version = "1.0.0"
+version = "1.0.1"
 kind = "recipe"
 path = "recipes/configarr"
 title = "syncs the quality profiles and custom formats of Radarr and Sonarr from your own git repository, every night"
