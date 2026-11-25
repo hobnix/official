@@ -355,7 +355,7 @@ requires_core = ">=11"
 audience = "generic"
 
 [package.passthrough]
-version = "1.0.1"
+version = "1.0.2"
 kind = "extension"
 path = "extensions/passthrough"
 title = "Passthrough domains (outside domains to reverse proxies on the LAN)"
