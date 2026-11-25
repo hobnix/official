@@ -298,7 +298,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.upload-storage]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/upload-storage"
 title = "your own file sync and upload server (Seafile or ownCloud), with apps for phone and PC"
