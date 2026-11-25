@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "uptime-kuma"
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 title = "checks that your services answer, keeps a history and warns when one is down"
 title_de = "prüft, ob deine Dienste antworten, führt einen Verlauf und warnt, wenn einer ausfällt"
@@ -31,3 +31,6 @@ type = "kv"
 title = "Instance"
 read = "status"
 items = [{ k = "State", col = 0 }, { k = "Address", col = 1 }, { k = "Port", col = 2 }]
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"

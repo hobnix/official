@@ -306,7 +306,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.uptime-kuma]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/uptime-kuma"
 title = "checks that your services answer, keeps a history and warns when one is down"
