@@ -46,4 +46,15 @@ check_eq "no content of the named file leaks" 0 "$(printf '%s\n' "$swapout" | gr
 check_eq "the named file is unchanged" "TOPSECRET" "$(cat "$WORK/secret")"
 check_eq "nothing is written through a planted link" "keep" "$(cat "$WORK/victim2")"
 check_eq "no copy of the secret in the folder" 0 "$(grep -rl TOPSECRET "$HS_MEDIA_STATE_DIR" 2>/dev/null | grep -c . || true)"
+echo "-- a root tool reaches the folder through the root-side link (hobnix/core dynamic user): /var/lib/hs-ext/media-hub"
+mkdir -p "$WORK/real/media-hub" "$WORK/ext"; ln -s "$WORK/real/media-hub" "$WORK/ext/media-hub"
+printf '1	movie	/films
+2	other	/films
+' > "$WORK/real/media-hub/watched.tsv"
+rc=0; out=$(env -u HS_MEDIA_STATE_DIR HS_EXT_DIR="$WORK/ext" HS_MEDIA_FM=$WORK/fm.sh timeout 60 bash "$SUG" start move-watched movie pool:small pool:large /films </dev/null 2>&1) || rc=$?
+check_eq "the folder is found through the link: exit 0" 0 "$rc"
+check_eq "the real folder was rewritten" "$(printf '2	other	/films')" "$(cat "$WORK/real/media-hub/watched.tsv")"
+rc=0; out=$(env -u HS_MEDIA_STATE_DIR HS_EXT_DIR="$WORK/none" timeout 60 bash "$SUG" plan move-watched movie pool:small pool:large /films </dev/null 2>&1) || rc=$?
+check_eq "no state folder at all: refused" 1 "$rc"
+grep -q 'state folder of media-hub is missing' <<<"$out" && pass "the refusal says why" || fail "$out"
 finish

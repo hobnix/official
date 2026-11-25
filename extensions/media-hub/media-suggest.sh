@@ -9,11 +9,25 @@
 #                 was watched more than HS_MEDIA_SUGGEST_DAYS (default 30) ago. HEURISTIC, unverified: from = the smallest writable pool, to = the largest;
 #                 the folder is the one the app reported and is assumed to exist at the same place in both pools (the file manager's plan refuses if not).
 #   plan|start    the file manager's plan / start for `move`, only for a row of watched.tsv. exit 0 = ok, 1 = refused.
-# Test knobs: HS_MEDIA_STATE_DIR, HS_MEDIA_FM (a program called like fm.sh), HS_MEDIA_NOW (epoch), HS_MEDIA_SUGGEST_DAYS.
+# Test knobs: HS_MEDIA_STATE_DIR, HS_EXT_DIR (instead of /var/lib/hs-ext), HS_MEDIA_FM (a program called like fm.sh), HS_MEDIA_NOW (epoch), HS_MEDIA_SUGGEST_DAYS.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 scripts=${HS_SCRIPTS:-$here/../../scripts}
-dir=${HS_MEDIA_STATE_DIR:-/var/lib/hs/media-hub}
+# The state folder of the service. Inside its unit it is $STATE_DIRECTORY (/var/lib/hs-ext/media-hub); this script is a ROOT tool and reaches the same folder on
+# disk through the root-side link /var/lib/hs-ext/media-hub (an older install: /var/lib/hs/media-hub, also a link now). The link itself is made by the server
+# (root only), so it is resolved once here; everything inside the folder is still opened without following links (wl below).
+dir=${HS_MEDIA_STATE_DIR:-}
+if [ -z "$dir" ]; then
+  for c in "${HS_EXT_DIR:-/var/lib/hs-ext}/media-hub" /var/lib/hs/media-hub; do
+    if [ -d "$c" ]; then dir=$(readlink -f -- "$c"); break; fi
+  done
+fi
+if [ -z "$dir" ]; then
+  [ "${1:-}" != list ] || exit 0   # nothing was ever watched
+  printf 'status	refused
+reason	The state folder of media-hub is missing (/var/lib/hs-ext/media-hub): start the service once.
+'; exit 1
+fi
 now=${HS_MEDIA_NOW:-$(date +%s)}
 days=${HS_MEDIA_SUGGEST_DAYS:-30}
 fm() { if [ -n "${HS_MEDIA_FM:-}" ]; then "$HS_MEDIA_FM" "$@"; else bash "$scripts/fm.sh" "$@"; fi; }

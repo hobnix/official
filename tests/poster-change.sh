@@ -78,4 +78,19 @@ if python3 -c "import PIL" 2>/dev/null; then
 else
   skip "Pillow is not installed"
 fi
+echo "-- the state folder: \$STATE_DIRECTORY in the unit, never /var/lib/hs"
+SD=$WORK/unit/posters; mkdir -p "$SD"
+rc=0; out=$(env -u HS_POSTER_DIR STATE_DIRECTORY="$SD" HS_STATE_DIR="$WORK/nowhere" timeout 60 bash "$PKGS/posters/poster-change.sh" start generate --eyebrow a --title Unit --seed 3 </dev/null 2>/dev/null) || rc=$?
+check_eq "start in the unit: exit 0" 0 "$rc"
+check "the picture is in STATE_DIRECTORY" test -s "$SD/poster-unit-3.png"
+check "nothing was made under HS_STATE_DIR" test ! -e "$WORK/nowhere"
+rc=0; out=$(env -u HS_POSTER_DIR STATE_DIRECTORY="$SD:/other" timeout 60 bash "$PKGS/posters/poster-change.sh" list </dev/null 2>/dev/null) || rc=$?
+check_eq "list reads STATE_DIRECTORY (first entry)" "poster-unit-3.png" "$(cut -f1 <<<"$out")"
+mkdir -p "$WORK/ext/posters"; echo PNG > "$WORK/ext/posters/poster-root-1.png"
+rc=0; out=$(env -u HS_POSTER_DIR -u STATE_DIRECTORY HS_EXT_DIR="$WORK/ext" HS_STATE_DIR="$WORK/nowhere" timeout 60 bash "$PKGS/posters/poster-change.sh" list </dev/null 2>/dev/null) || rc=$?
+check_eq "a root tool finds the folder through hs-ext" "poster-root-1.png" "$(cut -f1 <<<"$out")"
+rc=0; out=$(env -u HS_POSTER_DIR -u STATE_DIRECTORY HS_EXT_DIR="$WORK/none" HS_STATE_DIR="$WORK/none" timeout 60 bash "$PKGS/posters/poster-change.sh" start generate --eyebrow a --title No --seed 4 </dev/null 2>/dev/null) || rc=$?
+check_eq "no folder known: refused, exit 1" 1 "$rc"
+grep -q 'STATE_DIRECTORY is not set' <<<"$out" && pass "the refusal names STATE_DIRECTORY" || fail "$out"
+
 finish
