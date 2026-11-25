@@ -11,6 +11,7 @@ jobs:
   guard:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,12 +25,14 @@ jobs:
   # The pinned Rust version (rust-toolchain.toml, the only place) must exist: a typo or a version never released fails here, not in the release.
   toolchain:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Pinned version exists and is the only one
         run: python3 -I scripts/binary-check.py toolchain --online
   rust:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Any Rust crate?
