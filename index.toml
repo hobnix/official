@@ -133,7 +133,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.matrix-hook]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/matrix-hook"
 title = "Radarr, Sonarr, Seerr, the duplicate cleanup and SABnzbd post their events to a Matrix room (needs Synapse)"

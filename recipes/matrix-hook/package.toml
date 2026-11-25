@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "matrix-hook"
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 title = "Radarr, Sonarr, Seerr, the duplicate cleanup and SABnzbd post their events to a Matrix room (needs Synapse)"
 title_de = "Radarr, Sonarr, Seerr, die Bereinigung doppelter Filme und SABnzbd melden ihre Ereignisse in einem Matrix-Raum (braucht Synapse)"
@@ -11,3 +11,6 @@ needs = []
 uses = []
 input = "none"
 script = "run.sh"
+
+[meta]
+changes = "matrix-hook: keep the bot and admin passwords out of argv"
