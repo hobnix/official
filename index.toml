@@ -191,7 +191,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.pelican]
-version = "1.1.1"
+version = "1.1.2"
 kind = "recipe"
 path = "recipes/pelican"
 title = "game servers with a web panel (Panel and Wings, two containers)"
