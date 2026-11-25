@@ -1,7 +1,7 @@
 # hobnix/official
 
 The official packages of Hobnix, the NixOS home server (https://github.com/hobnix/core). One repository, three kinds of package, one signed
-index. It replaces the three repositories hobnix/recipes, hobnix/extensions and hobnix/capabilities (hobnix/core#1074).
+index (https://packages.hobnix.dev/official). Every package has one version, whatever its kind. Third-party and community packages live elsewhere (hobnix/community). It replaces the three repositories hobnix/recipes, hobnix/extensions and hobnix/capabilities (hobnix/core#1074).
 
 ## What is in it
 
@@ -59,7 +59,7 @@ raises the versions from the bump labels and opens the pull request; the Rust pr
 
 The signing workflow uses the core at a pinned commit SHA (`index.yml`): a core change reaches the signing job only through a reviewed pull request here that bumps the pin.
 
-Not tested on hardware yet: the first signed index has not been published.
+The signed index is published at https://packages.hobnix.dev/official/index.json (seen: it answers and lists the packages). Not tested on hardware yet: installing from it on a server. Blueprints: the folder does not exist yet; the first one (`minimal`) is in the open pull request #19.
 
 ## Where this tree comes from
 
