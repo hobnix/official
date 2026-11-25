@@ -1,7 +1,7 @@
 # Manifest of a package (docs/PLAN-packages.md). The rest of this extension is described by capability.toml beside it until the
 # packages move out of this repository.
 name = "posters"
-version = "1.0.1"
+version = "1.1.0"
 kind = "extension"
 title = "Posters drawn from the command line or the web interface"
 title_de = "Poster aus der Kommandozeile oder der Weboberfläche"
@@ -15,3 +15,6 @@ permissions = ["web.read", "web.change", "fs.write:/var/lib/hs/posters", "events
 exec = "@/poster-svc.py"
 subscribe = ["pkg.media-hub.imported"]
 health_interval = 30
+
+[meta]
+changes = "docs: fix stale names after the move into one repository; posters, media-hub: root writers give files back to the service, never through a link; media-hub and posters require core level 11"
