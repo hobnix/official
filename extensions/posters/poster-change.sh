@@ -84,6 +84,8 @@ if [ "$rc" -ne 0 ]; then
 fi
 file=$(awk -F'\t' '$1 == "file" { print $2; exit }' <<<"$out")
 [ -n "$file" ] || refuse "the poster could not be drawn"
+# run as root, the folder belongs to the user of the service (hobnix/core#1134): give the picture back to it. -h: never what a link names
+chown -h --reference="$dir" "$dir/$(basename "$file")" 2>/dev/null || true
 printf 'status\tdone\nfile\t%s\n' "$(basename "$file")"
 awk -F'\t' '$1 == "color" || $1 == "seed" || $1 == "size" { print }' <<<"$out"
 exit 0

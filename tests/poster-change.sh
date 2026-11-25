@@ -47,6 +47,14 @@ check "the picture is in the folder" test -s "$HS_POSTER_DIR/poster-dune-42.png"
 run list; has "^poster-dune-42.png${T}12${T}[0-9]" && pass "the list names it with its size" || fail "$out"
 echo x > "$HS_POSTER_DIR/notes.txt"; run list; check_eq "only posters are listed" 1 "$(grep -c . <<<"$out")"
 
+echo "-- owners (hobnix/core#1134): the new picture goes to the owner of the folder, never through a link"
+mkdir -p "$WORK/bin"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$*" >> "%s"\n' "$WORK/chown.log" > "$WORK/bin/chown"; chmod +x "$WORK/bin/chown"
+rc=0; out=$(PATH=$WORK/bin:$PATH timeout 60 bash "$PKGS/posters/poster-change.sh" start generate --eyebrow a --title Own --seed 1 </dev/null 2>/dev/null) || rc=$?
+check_eq "start with a recorded chown: exit 0" 0 "$rc"
+check_eq "chown -h with the folder as the reference" "-h --reference=$HS_POSTER_DIR $HS_POSTER_DIR/poster-own-1.png" "$(cat "$WORK/chown.log")"
+rm -f "$HS_POSTER_DIR/poster-own-1.png"
+
 echo "-- delete"
 run plan delete poster-dune-42.png; check_eq "delete plan: exit 0" 0 "$rc"
 run plan delete ../x.png;           check_eq "a path is refused" 1 "$rc"
@@ -61,6 +69,12 @@ if python3 -c "import PIL" 2>/dev/null; then
   check_eq "drawn: exit 0" 0 "$rc"
   has "^file${T}poster-real-5.png$" && pass "the real file name" || fail "$out"
   check "a PNG was written" test "$(head -c 4 "$HS_POSTER_DIR/poster-real-5.png" | tail -c 3)" = PNG
+  # a link planted where the poster goes: the file it names is not written
+  echo keep > "$WORK/victim"; ln -sf "$WORK/victim" "$HS_POSTER_DIR/poster-real-6.png"
+  run start generate --eyebrow "Test" --title "Real" --seed 6
+  check_eq "drawn over a planted link: exit 0" 0 "$rc"
+  check_eq "the file the link named is unchanged" keep "$(cat "$WORK/victim")"
+  check "the link was replaced by the picture" test ! -L "$HS_POSTER_DIR/poster-real-6.png"
 else
   skip "Pillow is not installed"
 fi

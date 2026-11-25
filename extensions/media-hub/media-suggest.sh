@@ -20,6 +20,9 @@ days=${HS_MEDIA_SUGGEST_DAYS:-30}
 fm() { if [ -n "${HS_MEDIA_FM:-}" ]; then "$HS_MEDIA_FM" "$@"; else bash "$scripts/fm.sh" "$@"; fi; }
 
 refuse() { printf 'status\trefused\nreason\t%s\n' "$1"; exit 1; }
+# the service owns the folder (it runs as its own user, hobnix/core#1134) and this script runs as root: a link there could name any file, so it is
+# never read and never written through, and a file made here is given back to the owner of the folder (-h: the file itself, never what a link names)
+[ ! -L "$watched" ] || { [ "${1:-}" != list ] || exit 0; refuse "The list of what was watched is a link; nothing was read."; }
 
 if [ "${1:-}" = list ]; then
   [ -s "$watched" ] || exit 0
@@ -52,7 +55,12 @@ fi
 out=$(selection | fm start move --from "$from" --path "$path" --to "$to" --to-path "$path" 2>&1) && rc=0 || rc=$?
 printf '%s\n' "$out"
 if [ "$rc" -eq 0 ] && grep -q '^status.done' <<<"$out"; then   # it is moved: the entry is no suggestion any more
-  tmp=$watched.new
-  awk -F'\t' -v n="$name" -v p="$path" '!(NF == 3 && $2 == n && $3 == p)' "$watched" > "$tmp" && mv "$tmp" "$watched"
+  tmp=$(mktemp "$dir/.watched.XXXXXX")   # a new file: a fixed name could be a link the service planted
+  if awk -F'\t' -v n="$name" -v p="$path" '!(NF == 3 && $2 == n && $3 == p)' "$watched" > "$tmp"; then
+    chown -h --reference="$dir" "$tmp" 2>/dev/null || true
+    mv -fT "$tmp" "$watched"
+  else
+    rm -f -- "$tmp"
+  fi
 fi
 exit "$rc"
