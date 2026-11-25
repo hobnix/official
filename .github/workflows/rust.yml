@@ -75,7 +75,7 @@ jobs:
         if: steps.crates.outputs.count != '0'
         run: python3 -I scripts/binary-check.py check --built built ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && '--release' || '' }}
       - name: Keep the build (what the release preparation commits)
-        if: steps.crates.outputs.count != '0'
+        if: ${{ !cancelled() && steps.crates.outputs.count != '0' }}
         uses: actions/upload-artifact@v4
         with:
           name: rust-programs
