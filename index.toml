@@ -85,7 +85,7 @@ requires_core = ">=6"
 audience = "generic"
 
 [package.homeassistant]
-version = "1.0.1"
+version = "1.0.2"
 kind = "recipe"
 path = "recipes/homeassistant"
 title = "Home Assistant, smart home control in its own virtual machine (Home Assistant OS)"
