@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "paperless-ngx"
-version = "1.0.0"
+version = "1.0.1"
 kind = "recipe"
 title = "your paper documents scanned, read by OCR and searchable in the browser"
 title_de = "deine Papierdokumente gescannt, per OCR gelesen und im Browser durchsuchbar"
@@ -11,3 +11,6 @@ needs = ["docker", "share"]
 uses = []
 input = "none"
 script = "run.sh"
+
+[meta]
+changes = "docs: fix stale names after the move into one repository"

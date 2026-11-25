@@ -183,7 +183,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.paperless-ngx]
-version = "1.0.0"
+version = "1.0.1"
 kind = "recipe"
 path = "recipes/paperless-ngx"
 title = "your paper documents scanned, read by OCR and searchable in the browser"
