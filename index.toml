@@ -125,7 +125,7 @@ requires_core = ">=1"
 audience = "personal"
 
 [package.maintainerr]
-version = "1.2.0"
+version = "1.2.1"
 kind = "recipe"
 path = "recipes/maintainerr"
 title = "cleans up unwatched films and series by rules you write (it has none at first, deletes nothing)"
