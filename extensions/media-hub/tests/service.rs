@@ -221,7 +221,8 @@ fn keeps_watched_tsv_in_state_directory() {
     let mut svc = Svc::start(&env, rows);
     svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.len() == 2));
     *jf.body.lock().unwrap() = "[]".into();
-    svc.wait(|m| m["type"] == "rollup" && m["user"] == "anna");
+    // the rollup is sent before watched.tsv is written: the snapshot after the poll is the first sign that the file is there
+    svc.wait(|m| m["type"] == "snapshot" && m["data"]["sessions"].as_array().is_some_and(|s| s.is_empty()));
     svc.stop();
     let w = std::fs::read_to_string(dir.join("unit-state/watched.tsv")).unwrap();
     assert!(w.contains("Dune.mkv"), "{w}");
