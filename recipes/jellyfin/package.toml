@@ -16,7 +16,7 @@ runs = ["lxc", "docker"]
 # What Jellyfin offers to other packages (hobnix/core#926). The key file is the one `hs services key jellyfin` writes (the dashboard tile "Streams");
 # it exists only after an admin made an API key in Jellyfin and stored it that way, until then the key state reads "missing".
 [integrations.media]
-api_url = "http://{host}:8096"
+api_url = "http://{host}:{port}"
 key_file = "/var/lib/hs/stat-jellyfin"
 key_header = "X-Emby-Token"
 kind = "player"
