@@ -93,6 +93,8 @@ impl Svc {
         writeln!(stdin, "{}", json!({"v":1,"type":"init","name":"media-hub","lang":"en","subscribe":[],"health_interval":1,"integrations":integrations})).unwrap();
         let mut svc = Svc { child, stdin, rx, seen: Vec::new() };
         svc.wait(|m| m["type"] == "ready");
+        // the core fails a service that writes anything first
+        assert_eq!(svc.seen.len(), 1, "nothing comes before ready: {:?}", svc.seen);
         svc
     }
 

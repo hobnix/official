@@ -17,7 +17,7 @@ mod poll;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -143,8 +143,22 @@ fn state_dir_from(knob: Option<String>, systemd: Option<String>) -> Result<PathB
     pick(knob).or_else(|| pick(systemd)).map(PathBuf::from).ok_or_else(|| "STATE_DIRECTORY is not set: the state folder of media-hub is unknown".to_string())
 }
 
+/// Starts `job` on a thread that waits until the returned sender sends. The SDK writes `ready` only after `start` has returned, and the core fails
+/// a service that writes anything before it (`protocol_error`, hobnix/core#1353): so the first `tick`, which comes after `ready`, sends.
+fn after_ready(job: impl FnOnce() + Send + 'static) -> mpsc::Sender<()> {
+    let (go, wait) = mpsc::channel();
+    thread::spawn(move || {
+        if wait.recv().is_ok() {
+            job();
+        }
+    });
+    go
+}
+
 struct Hub {
     health: Arc<Mutex<Health>>,
+    /// The poller's start signal, until the first `tick` has sent it.
+    go: Option<mpsc::Sender<()>>,
 }
 
 impl Service for Hub {
@@ -153,24 +167,36 @@ impl Service for Hub {
         if interval > 0.0 {
             let state_dir = state_dir_from(std::env::var("HS_MEDIA_STATE_DIR").ok(), std::env::var("STATE_DIRECTORY").ok())?;
             let (ctx, health, min) = (ctx.shared(), self.health.clone(), env_f64("HS_MEDIA_MIN_SECONDS", 60.0));
-            thread::spawn(move || worker(ctx, health, state_dir, interval.max(0.05), min));
+            self.go = Some(after_ready(move || worker(ctx, health, state_dir, interval.max(0.05), min)));
         }
         Ok(())
     }
 
     fn tick(&mut self, _ctx: &dyn Ctx) -> Health {
+        if let Some(go) = self.go.take() {
+            let _ = go.send(());
+        }
         let h = lock(&self.health);
         Health { ok: h.ok, text: h.text.clone() }
     }
 }
 
 fn main() -> ExitCode {
-    run(Hub { health: Arc::new(Mutex::new(Health::ok())) })
+    run(Hub { health: Arc::new(Mutex::new(Health::ok())), go: None })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_poller_waits_for_the_signal_that_follows_ready() {
+        let (done, seen) = mpsc::channel();
+        let go = after_ready(move || done.send(()).expect("send"));
+        assert!(seen.recv_timeout(Duration::from_millis(200)).is_err(), "nothing runs before the signal");
+        go.send(()).expect("signal");
+        seen.recv_timeout(Duration::from_secs(5)).expect("runs after the signal");
+    }
 
     #[test]
     fn state_dir_comes_from_the_unit_and_never_from_var_lib_hs() {
