@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Rules for compiled programs in this repository (CONTRIBUTING.md "Rust extensions"). Python 3.11+, standard library only.
 
-  binary-check.py check [--built DIR] [--release] [ROOT]
+  binary-check.py check [--built DIR] [--release] [--stale-ok] [ROOT]
       ROOT = the repository (default: the folder above scripts/). Looks at extensions/* and examples/*.
       --built DIR   the output of scripts/rust-build.sh: a committed program must equal the one built from the source here
       --release     a program named in a [[binary]] table must be committed (the release pull request, into main)
+      --stale-ok    (develop only) with --built, a committed program may differ from the build when what it is built from changed after the
+                    commit that last changed it: only the release preparation may commit the new one. Needs the full git history; not with --release
   binary-check.py install CRATE_FOLDER BUILT_FILE
       copies the built program to the path of the [[binary]] table, sets the executable bit, writes the sha256 into package.toml
   binary-check.py guard --base-branch B --head-branch H [--base REV] [--head REV] [ROOT]
@@ -118,7 +120,19 @@ def natives_in(folder):
                 yield os.path.relpath(p, folder).replace(os.sep, "/")
 
 
-def check(root, built=None, release=False):
+def source_moved(root, rel, p):
+    """True when the crate (without the program and package.toml) or the pinned toolchain changed after the commit that last changed the program.
+    The same comparison as scripts/prepare-binaries.sh. Anything that git cannot answer counts as unchanged."""
+    where = f"{rel}/{p}"
+    log = subprocess.run(["git", "-C", root, "log", "-1", "--format=%H", "--", where], capture_output=True, text=True)
+    last = log.stdout.strip()
+    if log.returncode != 0 or not last:
+        return False
+    paths = [rel, f":(exclude){where}", f":(exclude){rel}/package.toml", "rust-toolchain.toml"]
+    return subprocess.run(["git", "-C", root, "diff", "--quiet", last, "HEAD", "--", *paths], capture_output=True).returncode == 1
+
+
+def check(root, built=None, release=False, stale_ok=False):
     out = []
     for rel in folders(root):
         folder = os.path.join(root, rel)
@@ -182,6 +196,9 @@ def check(root, built=None, release=False):
                 if not os.path.isfile(bf):
                     out.append(f"{where}: no build output {bf} to compare with (is the crate built?)")
                 elif sha256(bf) != have:
+                    if stale_ok and not release and source_moved(root, rel, p):
+                        print(f"note {where}: older than its source; the release preparation commits the new program")
+                        continue
                     out.append(f"{where}: differs from the program built from the source here ({sha256(bf)[:12]}... vs {have[:12]}...)")
     return out
 
@@ -358,7 +375,7 @@ def main(argv):
             print(__doc__, file=sys.stderr)
             return 2
         return install(argv[1], argv[2])
-    built, release, root = None, False, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    built, release, stale_ok, root = None, False, False, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     rest = argv[1:]
     while rest:
         a = rest.pop(0)
@@ -366,9 +383,11 @@ def main(argv):
             built = rest.pop(0)
         elif a == "--release":
             release = True
+        elif a == "--stale-ok":
+            stale_ok = True
         else:
             root = a
-    problems = check(os.path.abspath(root), built, release)
+    problems = check(os.path.abspath(root), built, release, stale_ok)
     for p in problems:
         print("FAIL " + p)
     if not problems:
