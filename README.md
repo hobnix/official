@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/hobnix/core/HEAD/.github/branding/banner@2x.webp" alt="hobnix" width="100%"></p>
+
 # hobnix/official
 
 The official packages of Hobnix, the NixOS home server (https://github.com/hobnix/core). One repository, three kinds of package, one signed
@@ -10,7 +12,7 @@ index (https://packages.hobnix.dev/official). Every package has one version, wha
 | `recipes/<name>/` | recipe | installs an app in its own container or VM | MIT (`recipes/LICENSE`) |
 | `extensions/<name>/` | extension | an optional part of the server (commands, pages, jobs) | AGPL-3.0 |
 | `capabilities/<name>/` | capability | a part of the NixOS configuration, vendored as a Nix module | AGPL-3.0 |
-| `blueprints/<name>/` | blueprint | a ready-made combination of packages (not used yet) | AGPL-3.0 |
+| `blueprints/<name>/` | blueprint | a ready-made set of packages and settings (so far `minimal`) | AGPL-3.0 |
 
 Everything outside `recipes/` is AGPL-3.0 (`LICENSE`). Copies of the extensions that were released under MIT stay MIT; changes from now on are AGPL.
 The `kind` in `package.toml` is the truth, and `pkg.py repo-check` refuses a folder whose kind does not belong in it.
@@ -20,13 +22,15 @@ Other files: `index.toml` (all packages, with their versions), `tests/` (all tes
 ## Use a package
 
 ```
+hs pkg refresh
 hs pkg fetch
 hs pkg available
 hs pkg install <name>
 hs pkg update <name>
 ```
 
-Packages run as root on the server: read the diff `hs pkg update` shows.
+Update one package at a time. Read the diff `hs pkg update` shows: recipes and other package commands run as root on the server
+(extension services run as an unprivileged user since core 0.13).
 
 ## Add a package
 
@@ -59,14 +63,13 @@ raises the versions from the bump labels and opens the pull request; the Rust pr
 
 The signing workflow uses the core at a pinned commit SHA (`index.yml`): a core change reaches the signing job only through a reviewed pull request here that bumps the pin.
 
-The signed index is published at https://packages.hobnix.dev/official/index.json (seen: it answers and lists the packages). Not tested on hardware yet: installing from it on a server. Blueprints: the folder does not exist yet; the first one (`minimal`) is in the open pull request #19.
+The signed index is published at https://packages.hobnix.dev/official/index.json. Seen on one real server: installing and updating packages from it. Not tested on hardware yet: applying a blueprint.
 
 ## Where this tree comes from
 
 It was built by `scripts/dev/merge-package-repos.sh` of hobnix/core from the histories of hobnix/recipes, hobnix/extensions and
 hobnix/capabilities, which stay in the history unchanged (commits made before the merge mostly carry no `Signed-off-by`). `capabilities/`
-holds no package yet. `index.toml` lists 42 packages: 36 recipes and 6 extensions (ad-selfservice, game-lobbies, games, media-hub,
-passthrough, posters).
+holds no package yet. `index.toml` is the list of all packages.
 
 ## More
 

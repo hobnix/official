@@ -93,6 +93,8 @@ impl Svc {
         writeln!(stdin, "{}", json!({"v":1,"type":"init","name":"media-hub","lang":"en","subscribe":[],"health_interval":1,"integrations":integrations})).unwrap();
         let mut svc = Svc { child, stdin, rx, seen: Vec::new() };
         svc.wait(|m| m["type"] == "ready");
+        // the core fails a service that writes anything first
+        assert_eq!(svc.seen.len(), 1, "nothing comes before ready: {:?}", svc.seen);
         svc
     }
 
@@ -189,7 +191,7 @@ fn polls_jellyfin_with_its_own_key_and_counts_a_finished_playback() {
     let seen = svc.stop();
     let heads = jf.heads.lock().unwrap();
     assert!(heads.iter().all(|h| h.starts_with("GET /Sessions HTTP/1.1")), "{heads:?}");
-    assert!(heads.iter().all(|h| h.contains("X-Emby-Token: JELLY-KEY\r\n") && !h.contains("PLEX-KEY")), "the key of jellyfin goes to jellyfin only");
+    assert!(heads.iter().all(|h| h.contains("Authorization: MediaBrowser Token=\"JELLY-KEY\"\r\n") && !h.contains("X-Emby-Token") && !h.contains("PLEX-KEY")), "the key of jellyfin goes to jellyfin only");
     let all = serde_json::to_string(&seen).unwrap();
     assert!(!all.contains("JELLY-KEY") && !all.contains("PLEX-KEY"), "a key is never written to the protocol");
     let w = std::fs::read_to_string(dir.join("state/watched.tsv")).unwrap();
@@ -209,7 +211,7 @@ fn polls_plex_in_its_own_header_next_to_jellyfin() {
     assert_eq!(snap["data"]["sessions"][0], json!({"app": "plex", "user": "dora", "title": "Arrival"}));
     svc.stop();
     let (j, p) = (jf.heads.lock().unwrap(), px.heads.lock().unwrap());
-    assert!(j[0].starts_with("GET /Sessions ") && j[0].contains("X-Emby-Token: JK\r\n") && !j[0].contains("PK"), "{j:?}");
+    assert!(j[0].starts_with("GET /Sessions ") && j[0].contains("Authorization: MediaBrowser Token=\"JK\"\r\n") && !j[0].contains("PK"), "{j:?}");
     assert!(p[0].starts_with("GET /status/sessions ") && p[0].contains("X-Plex-Token: PK\r\n") && !p[0].contains("JK"), "{p:?}");
 }
 
