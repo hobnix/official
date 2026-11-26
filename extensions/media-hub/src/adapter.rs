@@ -28,6 +28,17 @@ pub const ADAPTERS: [Adapter; 2] = [
     Adapter { package: "plex", endpoint: "/status/sessions", header: "X-Plex-Token", parse: parse_plex },
 ];
 
+/// The header (name, value) that carries `key`. Jellyfin 12 refuses `X-Emby-Token` unless an admin turns the old ways of signing in on again
+/// (`EnableLegacyAuthorization`, off by default), so that header becomes `Authorization: MediaBrowser Token="<key>"`, the form the core uses for
+/// its own Jellyfin check. Another header that a row names is sent as it is.
+pub fn auth(package: &str, header: &str, key: &str) -> (String, String) {
+    if package == "jellyfin" && header.eq_ignore_ascii_case("X-Emby-Token") {
+        ("Authorization".to_string(), format!("MediaBrowser Token=\"{key}\""))
+    } else {
+        (header.to_string(), key.to_string())
+    }
+}
+
 pub fn adapter(package: &str) -> Option<&'static Adapter> {
     ADAPTERS.iter().find(|a| a.package == package)
 }
@@ -98,6 +109,15 @@ mod tests {
         let s = parse_jellyfin(&fixture("jellyfin-sessions.json"));
         assert_eq!(s.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(), ["s1", "s3"]);
         assert_eq!((s[0].user.as_str(), s[0].title.as_str(), s[0].path.as_str()), ("anna", "Dune", "/media/movies/Dune (2021)/Dune.mkv"));
+    }
+
+    #[test]
+    fn the_key_header_of_jellyfin_is_the_one_version_12_accepts() {
+        let pair = |a: &str, b: &str| (a.to_string(), b.to_string());
+        assert_eq!(auth("jellyfin", "X-Emby-Token", "K1"), pair("Authorization", "MediaBrowser Token=\"K1\""));
+        assert_eq!(auth("jellyfin", "x-emby-token", "K1"), pair("Authorization", "MediaBrowser Token=\"K1\""));
+        assert_eq!(auth("jellyfin", "X-Own-Header", "K1"), pair("X-Own-Header", "K1"));
+        assert_eq!(auth("plex", "X-Plex-Token", "K2"), pair("X-Plex-Token", "K2"));
     }
 
     #[test]

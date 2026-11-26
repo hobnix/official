@@ -61,7 +61,8 @@ fn fetch(ctx: &dyn Ctx, said: &mut Said, app: &App) -> Option<String> {
     };
     said.keyless.remove(&app.package);
     let url = format!("{}{}", app.url.trim_end_matches('/'), ad.endpoint);
-    let got = Client::new().timeout(HTTP_TIMEOUT).header(app.header.clone(), key).get(&url).and_then(|r| r.ok()).map(|r| r.text());
+    let (name, value) = adapter::auth(&app.package, &app.header, &key);
+    let got = Client::new().timeout(HTTP_TIMEOUT).header(name, value).get(&url).and_then(|r| r.ok()).map(|r| r.text());
     match got {
         Ok(text) => {
             said.failed.remove(&app.package);
