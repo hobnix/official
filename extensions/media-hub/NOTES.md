@@ -28,7 +28,7 @@ Second slice (needs core API level 10 for the `[service]` table):
   polled; put a local TLS-terminating proxy in front of it or use the plain http address of the app on the same host.
 - **Keys by provider:** the rows of `init.integrations` (the core builds them; the service runs no `hs`; they carry no key and no key state) name each provider and its address; its key is the systemd credential
   `integration-media-<provider>` read with the SDK (`credential_for`), never from argv or the environment, never logged, and sent only to the address of
-  its own provider in the header of its row (a row without `key_header` gets the header of the adapter: Jellyfin `X-Emby-Token`, Plex `X-Plex-Token`). A
+  its own provider in the header of its row (a row without `key_header` gets the header of the adapter: Jellyfin `X-Emby-Token`, Plex `X-Plex-Token`). For Jellyfin `X-Emby-Token` is sent as `Authorization: MediaBrowser Token="<key>"`, because Jellyfin 12 turns the old header off by default. A
   provider without an adapter (Radarr, Sonarr, SABnzbd) is skipped and named once in the log; one without a credential is named once and not asked. The
   old known gap (one credential for all providers) is closed by the per-provider credentials of the core. The rows are read once at start: a new app
   needs a restart of the service. A core that sends no `integrations` (older than the field) leaves the poller idle with "no media app found" in the log.
