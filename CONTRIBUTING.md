@@ -24,6 +24,7 @@ MIT in `recipes/`, AGPL-3.0 everywhere else.
    request into `develop`. On the release pull request the job `versions` fails for a package that changed since `main` without a higher version.
 4. `pkg.py validate`, `pkg.py repo-check .` and `tests/run-all.sh` must pass (CI runs them against the core, see README.md).
 5. Rust extensions ship a static musl program; only the release preparation and the release pull request may carry a program
-   (`scripts/binary-check.py`, workflow `rust`). On `develop` a crate pins the SDK `hobnix-ext-sdk` by git `rev`. Before a release, change it to
+   (`scripts/binary-check.py`, workflow `rust`). So on `develop` a committed program may be older than a changed source; the release
+   preparation, the release pull request and `main` require the two to match. On `develop` a crate pins the SDK `hobnix-ext-sdk` by git `rev`. Before a release, change it to
    `tag = "vX.Y.Z"` of a core release that has what the crate uses, and update `Cargo.lock` (`cargo update -p hobnix-ext-sdk`) in its own pull
    request into `develop`: the core's `repo-check --release` refuses any other pin (ADR 0031). Run `prepare-release` after that merge.

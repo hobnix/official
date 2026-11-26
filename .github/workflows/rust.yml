@@ -39,6 +39,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # --stale-ok compares with the commit that last changed a program
       - name: Any Rust crate?
         id: crates
         run: |
@@ -74,7 +76,11 @@ jobs:
         run: bash scripts/rust-build.sh --out built
       - name: Committed programs equal the build
         if: steps.crates.outputs.count != '0'
-        run: python3 -I scripts/binary-check.py check --built built ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && '--release' || '' }}
+        # On develop (a push, or a pull request into it that is not the release preparation) a program may be older than a changed source:
+        # no pull request there may commit one (job guard). The release preparation, the release pull request and main stay strict.
+        run: python3 -I scripts/binary-check.py check --built built ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && '--release' || '' }} $STALE
+        env:
+          STALE: ${{ ((github.event_name == 'pull_request' && github.base_ref == 'develop' && !startsWith(github.head_ref, 'release/prepare-')) || (github.event_name == 'push' && github.ref_name == 'develop')) && '--stale-ok' || '' }}
       - name: Keep the build (what the release preparation commits)
         if: ${{ !cancelled() && steps.crates.outputs.count != '0' }}
         uses: actions/upload-artifact@v4
