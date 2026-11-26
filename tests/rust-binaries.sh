@@ -61,6 +61,19 @@ out=$(run --built "$t/built" "$r") && bad "program differing from the build acce
 cp "$r/extensions/p/bin/p" "$t/built/extensions/p/p"
 out=$(run --built "$t/built" "$r") && ok "committed program equal to the build passes" || bad "equal build refused: $out"
 
+# --stale-ok: a program that differs passes only when its source changed after the commit that last changed it
+com() { git -C "$r" -c user.name=t -c user.email=t@t commit -q -m "$1"; }
+fresh stale; com program
+out=$(run --stale-ok --built "$t/built2" "$r") && bad "stale-ok without a build output accepted" || ok "stale-ok: a missing build output is still refused"
+mkdir -p "$t/built2/extensions/p"; elf "$t/built2/extensions/p/p" x
+out=$(run --stale-ok --built "$t/built2" "$r") && bad "stale-ok with an unchanged source accepted" || ok "stale-ok: a differing program with an unchanged source is refused"
+echo 'name = "p2"' >> "$r/extensions/p/package.toml"; git -C "$r" add -A; com manifest
+out=$(run --stale-ok --built "$t/built2" "$r") && bad "stale-ok after a manifest change accepted" || ok "stale-ok: package.toml alone is not a source change"
+echo 'fn main() {}' > "$r/extensions/p/main.rs"; git -C "$r" add -A; com source
+out=$(run --stale-ok --built "$t/built2" "$r") && grep -q "older than its source" <<<"$out" && ok "stale-ok: a program older than its source passes, with a note" || bad "stale program refused: $out"
+out=$(run --built "$t/built2" "$r") && bad "stale program accepted without --stale-ok" || ok "without --stale-ok the older program is refused"
+out=$(run --release --stale-ok --built "$t/built2" "$r") && bad "stale program accepted for a release" || ok "a release refuses the older program"
+
 fresh rel; rm "$r/extensions/p/bin/p"; git -C "$r" add -A
 out=$(run "$r") && ok "a declared program may be absent before the release" || bad "absent program refused: $out"
 out=$(run --release "$r") && bad "release without the program accepted" || { grep -q "not committed" <<<"$out" && ok "release needs the program" || bad "wrong message: $out"; }
