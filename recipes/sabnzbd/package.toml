@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "sabnzbd"
-version = "1.2.0"
+version = "1.2.1"
 kind = "recipe"
 title = "the Usenet downloader that Radarr and Sonarr send their downloads to"
 title_de = "der Usenet-Downloader, an den Radarr und Sonarr ihre Downloads schicken"
