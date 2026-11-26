@@ -1,6 +1,6 @@
 # Manifest of a package (docs/PLAN-packages.md).
 name = "jellyfin"
-version = "1.2.1"
+version = "1.2.2"
 kind = "recipe"
 title = "watch your films, series and music in the browser, on the TV and on the phone"
 title_de = "Filme, Serien und Musik im Browser, auf dem Fernseher und auf dem Handy ansehen"
@@ -16,7 +16,10 @@ runs = ["lxc", "docker"]
 # What Jellyfin offers to other packages (hobnix/core#926). The key file is the one `hs services key jellyfin` writes (the dashboard tile "Streams");
 # it exists only after an admin made an API key in Jellyfin and stored it that way, until then the key state reads "missing".
 [integrations.media]
-api_url = "http://{host}:8096"
+api_url = "http://{host}:{port}"
 key_file = "/var/lib/hs/stat-jellyfin"
 key_header = "X-Emby-Token"
 kind = "player"
+
+[meta]
+changes = "jellyfin: use the server's own Jellyfin port in the integration address"
