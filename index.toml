@@ -347,7 +347,7 @@ requires_core = ">=1"
 audience = "generic"
 
 [package.media-hub]
-version = "0.2.0"
+version = "0.2.1"
 kind = "extension"
 path = "extensions/media-hub"
 title = "Media hub: watch statistics from the media apps"
