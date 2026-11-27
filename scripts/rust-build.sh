@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the Rust crates of this repository as static musl programs and proves the build is reproducible.
 #   scripts/rust-build.sh [--out DIR] [--install] [<crate folder>...]
-# Crate folder = a folder with a Cargo.toml: extensions/<name> (the crate of a package) or examples/<name>. No folder given = all of them.
+# Crate folder = a folder with a Cargo.toml: extensions/<name> or capabilities/<name> (the crate of a package) or examples/<name>. No folder
+# given = all of them (`binary-check.py crates`).
 # Each crate is built TWICE, in two different target folders, and the sha256 of both programs must be equal (--locked, SOURCE_DATE_EPOCH, remapped paths).
 # The program lands in DIR/<crate folder>/<bin name> (default DIR=built). --install copies it to the path the [[binary]] table of the package
 # names, sets the executable bit and writes the sha256 into package.toml: the step of the release preparation, never of a feature pull request.
@@ -14,12 +15,13 @@ while [ $# -gt 0 ]; do
   case $1 in
     --out) out=$2; shift 2 ;;
     --install) install=1; shift ;;
-    -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
     *) crates+=("${1%/}"); shift ;;
   esac
 done
 if [ ${#crates[@]} -eq 0 ]; then
-  for f in extensions/*/Cargo.toml examples/*/Cargo.toml; do [ -f "$f" ] && crates+=("$(dirname "$f")"); done
+  found=$(python3 -I scripts/binary-check.py crates)
+  for f in $found; do crates+=("$f"); done
 fi
 if [ ${#crates[@]} -eq 0 ]; then echo "no Rust crate in this repository: nothing to build"; exit 0; fi
 
