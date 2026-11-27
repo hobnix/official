@@ -29,9 +29,10 @@ case $branch in release/prepare-*) ;; *) die "this runs on the release branch re
 source_commit=$(git rev-parse HEAD)   # what the programs are built from: the bump commit changes versions, not crates
 
 if [ ${#crates[@]} -eq 0 ]; then
-  for f in extensions/*/Cargo.toml; do [ -f "$f" ] && crates+=("$(dirname "$f")"); done   # examples/ ships nothing
+  found=$(python3 -I scripts/binary-check.py crates --shipped)
+  for f in $found; do crates+=("$f"); done
 fi
-if [ ${#crates[@]} -eq 0 ]; then echo "no Rust extension: no program to commit"; exit 0; fi
+if [ ${#crates[@]} -eq 0 ]; then echo "no Rust package: no program to commit"; exit 0; fi
 
 built=$(mktemp -d); trap 'rm -rf "$built"' EXIT
 bash scripts/rust-build.sh --out "$built" --install "${crates[@]}" || die "build or install failed; nothing committed"

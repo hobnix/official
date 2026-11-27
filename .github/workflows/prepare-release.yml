@@ -1,10 +1,10 @@
 # Prepares the next release of official (hobnix/core#615, #1074): raises the versions from the `bump:` labels of the merged pull requests and
 # opens a pull request into develop. Run it by hand on `develop`. The steps are the shared workflow of hobnix/core (package-prepare-release.yml);
 # in a repository that publishes an index (index.toml `publish = "index"`) it compares against origin/main, not against a tag.
-# The second job (from hobnix/extensions#30, hobnix/core#1129) adds the Rust programs of extensions to that pull request: it builds every crate
+# The second job (from hobnix/extensions#30, hobnix/core#1129) adds the Rust programs of extensions and capabilities to that pull request: it builds every crate
 # twice with the toolchain of rust-toolchain.toml, aborts on a hash difference, writes the sha256 into package.toml, runs scripts/binary-check.py,
 # commits programs and hashes in ONE commit apart from the version bump, pushes the branch and appends the table (path, size, sha256, source
-# commit) to the pull request body. With no crate under extensions/ it does nothing. Nobody reviews a binary: those checks are the safeguard.
+# commit) to the pull request body. With no crate in a package folder it does nothing. Nobody reviews a binary: those checks are the safeguard.
 # Not run yet. A push with the workflow token starts no `check` run: push an empty commit or reopen the pull request by hand (owner).
 # GitHub did not register this file from the repository's first push (it has no `push` or `pull_request` trigger, so no run ever named it) and
 # `gh workflow run` answered 404. If a new workflow_dispatch-only file is missing from the Actions list, merge a change to it into `develop`.
@@ -40,11 +40,12 @@ jobs:
                  --jq '[.[] | select(.headRefName | startswith("release/prepare-"))] | sort_by(.createdAt) | last | .headRefName // ""')
           echo "branch=$br" >> "$GITHUB_OUTPUT"
           echo "release branch: ${br:-none}"
-      - name: Any Rust extension?
+      - name: Any Rust package?
         id: crates
         if: steps.pr.outputs.branch != ''
         run: |
-          n=$(ls extensions/*/Cargo.toml 2>/dev/null | wc -l)
+          list=$(python3 -I scripts/binary-check.py crates --shipped)   # on its own line: a failing list must fail the job, not count as 0
+          n=$(printf '%s' "$list" | grep -c . || true)
           echo "count=$n" >> "$GITHUB_OUTPUT"
       - name: Check out the release branch
         if: steps.crates.outputs.count != '' && steps.crates.outputs.count != '0'

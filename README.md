@@ -17,7 +17,7 @@ index (https://packages.hobnix.dev/official). Every package has one version, wha
 Everything outside `recipes/` is AGPL-3.0 (`LICENSE`). Copies of the extensions that were released under MIT stay MIT; changes from now on are AGPL.
 The `kind` in `package.toml` is the truth, and `pkg.py repo-check` refuses a folder whose kind does not belong in it.
 Other files: `index.toml` (all packages, with their versions), `tests/` (all tests, `tests/run-all.sh`), `examples/`, `scripts/` and
-`rust-toolchain.toml` (the build of Rust extensions).
+`rust-toolchain.toml` (the build of Rust packages).
 
 ## Use a package
 
@@ -59,7 +59,7 @@ On every push to `main` (and daily, and by hand) the workflow `index` builds `in
 index key (environment `index-signing`, usable from `main` only) and publishes both to GitHub Pages. The signature is verified against
 `config/trusted-keys/official.allowed_signers` of the core before anything is published. A server reads the index, checks the signature and
 installs the commit the index names. The serial of the index only goes up. The release preparation (workflow `prepare-release`, on `develop`)
-raises the versions from the bump labels and opens the pull request; the Rust programs of extensions are built and committed in that pull request.
+raises the versions from the bump labels and opens the pull request; the Rust programs of extensions and capabilities are built and committed in that pull request.
 
 The signing workflow uses the core at a pinned commit SHA (`index.yml`): a core change reaches the signing job only through a reviewed pull request here that bumps the pin.
 

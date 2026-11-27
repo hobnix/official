@@ -108,6 +108,34 @@ out=$(g --head-branch feature/x "$r") && bad "guard: a program newly listed in t
 fresh rep; out=$(python3 -I "$chk" report "$r" 2>&1)
 grep -q "extensions/p/bin/p" <<<"$out" && grep -q "$(sha "$r/extensions/p/bin/p")" <<<"$out" && ok "report lists path and sha256" || bad "report: $out"
 
+# a capability with a program follows the same rules as an extension (core#1388)
+cfresh() {
+  r="$t/$1"; mkdir -p "$r/capabilities/c/bin"; git -C "$r" init -q -b main
+  : > "$r/capabilities/c/Cargo.toml"
+  elf "$r/capabilities/c/bin/c"; chmod 755 "$r/capabilities/c/bin/c"
+  printf 'name = "c"\n[[binary]]\npath = "bin/c"\nsha256 = "%s"\n' "$(sha "$r/capabilities/c/bin/c")" > "$r/capabilities/c/package.toml"
+  git -C "$r" add -A; git -C "$r" -c core.fileMode=true update-index --chmod=+x capabilities/c/bin/c
+}
+cfresh cgood
+out=$(run "$r") && ok "capability: a listed static program with its hash passes" || bad "capability: good case refused: $out"
+elf "$r/capabilities/c/bin/c" x; git -C "$r" add -A
+out=$(run "$r") && bad "capability: changed program accepted" || { grep -q "capabilities/c/bin/c: sha256 in package.toml" <<<"$out" && ok "capability: hash mismatch refused" || bad "wrong message: $out"; }
+cfresh crel; rm "$r/capabilities/c/bin/c"; git -C "$r" add -A
+out=$(run --release "$r") && bad "capability: release without the program accepted" || { grep -q "capabilities/c/bin/c: listed in package.toml but not committed" <<<"$out" && ok "capability: a release needs the program" || bad "wrong message: $out"; }
+cfresh crep; out=$(python3 -I "$chk" report "$r" 2>&1)
+grep -q "capabilities/c/bin/c" <<<"$out" && ok "capability: report lists the program" || bad "report: $out"
+gfresh g6; mkdir -p "$r/capabilities/c/bin"; printf 'name = "c"\n[[binary]]\npath = "bin/c"\n' > "$r/capabilities/c/package.toml"; echo x > "$r/capabilities/c/bin/c"; gcommit
+out=$(g --head-branch feature/x "$r") && bad "guard: a capability program in a feature PR accepted" || { grep -q "capabilities/c/bin/c: a program listed" <<<"$out" && ok "guard: a capability program in a feature PR refused" || bad "wrong message: $out"; }
+
+# crates: the one list of Rust folders; examples ship nothing
+mkdir -p "$t/list/extensions/e" "$t/list/capabilities/c" "$t/list/examples/x" "$t/list/capabilities/nocrate"
+: > "$t/list/extensions/e/Cargo.toml"; : > "$t/list/capabilities/c/Cargo.toml"; : > "$t/list/examples/x/Cargo.toml"
+out=$(python3 -I "$chk" crates "$t/list" | tr '\n' ' ')
+[ "$out" = "extensions/e capabilities/c examples/x " ] && ok "crates lists extensions, capabilities and examples" || bad "crates: $out"
+out=$(python3 -I "$chk" crates --shipped "$t/list" | tr '\n' ' ')
+[ "$out" = "extensions/e capabilities/c " ] && ok "crates --shipped leaves out the examples" || bad "crates --shipped: $out"
+out=$(grep -rn '/\*/Cargo\.toml' "$here/scripts" "$here/.github/workflows") && bad "a script or workflow keeps its own list of crates: $out" || ok "no script or workflow keeps its own list of crates"
+
 # toolchain: one exact version, in rust-toolchain.toml only
 tc() { python3 -I "$chk" toolchain "$@" 2>&1; }
 mkdir -p "$t/tc/.github/workflows"; printf '[toolchain]\nchannel = "1.94.1"\n' > "$t/tc/rust-toolchain.toml"

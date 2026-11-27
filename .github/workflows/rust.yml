@@ -1,7 +1,7 @@
 name: rust
-# Rust extensions ship a static musl program (CONTRIBUTING.md "Rust extensions", hobnix/extensions#26, hobnix/core#1129). This job builds every crate
-# (extensions/*/Cargo.toml and examples/*/Cargo.toml), builds each one twice and fails when the two programs differ, then checks the rules for
-# committed programs (scripts/binary-check.py). With no crate in the repository it ends in seconds.
+# A Rust extension or capability ships a static musl program (CONTRIBUTING.md "Writing a package", hobnix/extensions#26, hobnix/core#1129). This job
+# builds every crate (`scripts/binary-check.py crates`) twice and fails when the two programs differ, then checks the rules for committed
+# programs (scripts/binary-check.py). With no crate in the repository it ends in seconds.
 # Not part of the shared release workflow (hobnix/core#522): that one signs and tags; this one needs the crate sources of THIS repository.
 on:
   push:
@@ -44,7 +44,8 @@ jobs:
       - name: Any Rust crate?
         id: crates
         run: |
-          n=$(ls extensions/*/Cargo.toml examples/*/Cargo.toml 2>/dev/null | wc -l)
+          list=$(python3 -I scripts/binary-check.py crates)   # on its own line: a failing list must fail the job, not count as 0
+          n=$(printf '%s' "$list" | grep -c . || true)
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "Rust crates: $n"
       - name: Rules for committed programs (no build needed)
@@ -68,8 +69,9 @@ jobs:
       - name: Tests of the crates (unit tests, and the real program against a local http server)
         if: steps.crates.outputs.count != '0'
         run: |
-          for c in $(ls extensions/*/Cargo.toml examples/*/Cargo.toml 2>/dev/null); do
-            cargo test --locked --manifest-path "$c"
+          list=$(python3 -I scripts/binary-check.py crates)
+          for c in $list; do
+            cargo test --locked --manifest-path "$c/Cargo.toml"
           done
       - name: Build twice and compare (reproducible)
         if: steps.crates.outputs.count != '0'

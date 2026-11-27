@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Rules for compiled programs in this repository (CONTRIBUTING.md "Rust extensions"). Python 3.11+, standard library only.
+"""Rules for compiled programs in this repository (CONTRIBUTING.md "Writing a package", point 5). Python 3.11+, standard library only.
 
   binary-check.py check [--built DIR] [--release] [--stale-ok] [ROOT]
-      ROOT = the repository (default: the folder above scripts/). Looks at extensions/* and examples/*.
+      ROOT = the repository (default: the folder above scripts/). Looks at extensions/*, capabilities/* and examples/*.
       --built DIR   the output of scripts/rust-build.sh: a committed program must equal the one built from the source here
       --release     a program named in a [[binary]] table must be committed (the release pull request, into main)
       --stale-ok    (develop only) with --built, a committed program may differ from the build when what it is built from changed after the
@@ -12,6 +12,9 @@
   binary-check.py guard --base-branch B --head-branch H [--base REV] [--head REV] [ROOT]
       a pull request that is not the release preparation (head release/prepare-*) or the release (into main) must not add or change a
       file named in a [[binary]] table, nor an executable file over 1 MB (REV defaults: origin/B, HEAD; compared from their merge base)
+  binary-check.py crates [--shipped] [ROOT]
+      one line per folder with a Cargo.toml; --shipped leaves out examples/ (they ship nothing). THE list of Rust folders: the scripts and
+      workflows ask here and keep none of their own
   binary-check.py report [--commit SHA] [ROOT]
       Markdown table of every committed [[binary]]: path, size, sha256 and the commit the program was built from (SHA, default HEAD)
   binary-check.py toolchain [--online] [--rustc "<rustc --version>"] [ROOT]
@@ -38,6 +41,8 @@ import subprocess
 import sys
 import tomllib
 
+SHIPPED = ("extensions", "capabilities")   # the folders whose packages may ship a program
+SUBS = SHIPPED + ("examples",)
 MAX_BYTES = 15 * 1024 * 1024
 TARGET = "x86_64-unknown-linux-musl"
 MAGIC = (b"\x7fELF", b"MZ", b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe")
@@ -102,13 +107,17 @@ def executable(root, rel):
     return bool(os.stat(os.path.join(root, rel)).st_mode & stat.S_IXUSR)
 
 
-def folders(root):
-    for sub in ("extensions", "examples"):
+def folders(root, subs=SUBS):
+    for sub in subs:
         d = os.path.join(root, sub)
         if os.path.isdir(d):
             for n in sorted(os.listdir(d)):
                 if os.path.isdir(os.path.join(d, n)):
                     yield f"{sub}/{n}"
+
+
+def crates(root, shipped=False):
+    return [rel for rel in folders(root, SHIPPED if shipped else SUBS) if os.path.isfile(os.path.join(root, rel, "Cargo.toml"))]
 
 
 def natives_in(folder):
@@ -161,7 +170,7 @@ def check(root, built=None, release=False, stale_ok=False):
             out.append(f"{rel}: has [[binary]] but no Cargo.toml: a program is built from a crate in the package folder")
         for p in natives_in(folder):
             if not has_crate:
-                out.append(f"{rel}/{p}: compiled program in a package without Cargo.toml (only Rust extensions may ship one)")
+                out.append(f"{rel}/{p}: compiled program in a package without Cargo.toml (only a Rust package may ship one)")
             elif p not in listed:
                 out.append(f"{rel}/{p}: compiled program not listed in a [[binary]] table of package.toml")
         for p, b in listed.items():
@@ -266,7 +275,7 @@ def guard(root, base_branch, head_branch, base=None, head="HEAD"):
     changed = [parts[i + 1] for i in range(0, len(parts) - 1, 2) if parts[i] != "D"]   # a deleted program is fine
     listed = set()
     for ref in (head, mb):   # a program named before or after the pull request
-        for rel in run("ls-tree", "-d", "--name-only", ref, "extensions/", "examples/").stdout.split():
+        for rel in run("ls-tree", "-d", "--name-only", ref, *(s + "/" for s in SUBS)).stdout.split():
             r = run("show", f"{ref}:{rel}/package.toml")
             if r.returncode == 0:
                 listed |= binary_paths(r.stdout, rel)
@@ -335,15 +344,19 @@ def toolchain(root, online, rustc):
 
 def other(cmd, rest):
     root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-    o = {"online": False}
+    o = {"online": False, "shipped": False}
     while rest:
         a = rest.pop(0)
-        if a == "--online":
-            o["online"] = True
+        if a in ("--online", "--shipped"):
+            o[a[2:]] = True
         elif a.startswith("--") and rest:
             o[a[2:]] = rest.pop(0)
         else:
             root = os.path.abspath(a)
+    if cmd == "crates":
+        for rel in crates(root, o["shipped"]):
+            print(rel)
+        return 0
     if cmd == "report":
         rows = report(root, o.get("commit"))
         if rows:
@@ -365,7 +378,7 @@ def other(cmd, rest):
 
 
 def main(argv):
-    if argv and argv[0] in ("guard", "report", "toolchain"):
+    if argv and argv[0] in ("crates", "guard", "report", "toolchain"):
         return other(argv[0], argv[1:])
     if not argv or argv[0] not in ("check", "install"):
         print(__doc__, file=sys.stderr)
