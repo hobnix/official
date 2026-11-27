@@ -1,0 +1,28 @@
+# The program of the capability autopilot (hobnix/core#1374), a static musl program: `[[binary]]` of package.toml, built by scripts/rust-build.sh.
+[package]
+name = "autopilot"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "autopilot"
+path = "src/main.rs"
+
+[dependencies]
+# The 0.14 SDK, pinned to a commit of the core branch 0.14 (there is no 0.14 tag yet). Change `rev` to `tag = "v0.14.0-..."` before a release
+# (ADR 0031; `repo-check --release` refuses a commit pin).
+hobnix-pkg = { git = "https://github.com/hobnix/core", rev = "91fa6884a3658f6b17b52ab5b9f4454032342b9f" }
+hobnix-pkg-command = { git = "https://github.com/hobnix/core", rev = "91fa6884a3658f6b17b52ab5b9f4454032342b9f", features = ["macros"] }
+serde_json = "1"
+# HTTPS to GitHub: the SDK's own client speaks plain http only. rustls with the CA list built into the program (no OpenSSL, nothing of the server).
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+# Own workspace root: the crate is built by itself, never as part of another folder's workspace.
+[workspace]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"

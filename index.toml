@@ -27,6 +27,14 @@ title = "one login for your services (AD accounts for you, local accounts for fr
 requires_core = ">=1"
 audience = "generic"
 
+[package.autopilot]
+version = "0.1.0"
+kind = "capability"
+path = "capabilities/autopilot"
+title = "Autopilot (trial): will build approved GitHub issues in a throwaway VM"
+requires_core = ">=11"
+audience = "generic"
+
 [package.bazarr]
 version = "1.1.1"
 kind = "recipe"

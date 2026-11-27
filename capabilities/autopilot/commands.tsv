@@ -1,0 +1,3 @@
+user	ext autopilot status	@/bin/autopilot	-	show what autopilot is doing	zeigt, was Autopilot tut	reads,proto
+sys	sys ext autopilot status	@/bin/autopilot	-	the state of autopilot, as key and value	-	reads,proto
+user	ext autopilot github	@/bin/autopilot	-	check that GitHub answers over HTTPS	prüft, ob GitHub über HTTPS antwortet	reads,timeout:30,proto
