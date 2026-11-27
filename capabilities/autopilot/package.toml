@@ -1,0 +1,38 @@
+# Manifest of a capability package (docs/PLAN-capabilities-repo.md in hobnix/core). Design of this one: docs/PLAN-autopilot.md there.
+# A TRIAL (hobnix/core#1374): it answers `status` and checks that GitHub is reachable. It runs no job.
+name = "autopilot"
+version = "0.1.0"
+kind = "capability"
+type = "feature"
+title = "Autopilot (trial): will build approved GitHub issues in a throwaway VM"
+title_de = "Autopilot (Probe): soll freigegebene GitHub-Issues in einer Wegwerf-VM umsetzen"
+requires_core = ">=11"
+audience = "generic"
+protocol = [1]
+# web.read = the status block of the page; net:internet = the command `github` (declared and shown only, `net` is not enforced)
+permissions = ["web.read", "net:internet"]
+module = "module.nix"
+requires_nix_api = 1
+
+# The program (src/, built by scripts/rust-build.sh). Not built on develop: no sha256 and no file here; the release preparation builds it and
+# commits program and hash. Until then `repo-check --release` and `hs pkg install` refuse this package (binary.unbuilt).
+[[binary]]
+path = "bin/autopilot"
+sha256 = ""
+bin = "autopilot"
+target = "x86_64-unknown-linux-musl"
+
+[[web.reads]]
+words = "status"
+kind = "tsv"
+ttl = 10
+
+[web.page]
+title = "Autopilot"
+sub = "A trial: no job runs yet."
+icon = "robot"
+group = "system"
+[[web.page.blocks]]
+type = "kv"
+read = "status"
+pairs = true
