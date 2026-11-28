@@ -21,9 +21,9 @@ use std::sync::{mpsc, Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use hobnix_ext_sdk::http::{Client, HttpError};
-use hobnix_ext_sdk::service::{run, Health, Init, Service};
-use hobnix_ext_sdk::{Ctx, Event, LogLevel};
+use hobnix_pkg::http::{Client, HttpError};
+use hobnix_pkg::{Ctx, Error, Event, LogLevel};
+use hobnix_pkg_service::{run, Health, Init, Service};
 use serde_json::{json, Map, Value};
 
 use poll::{clean, parse_apps, user_name, App, Finished, Playing, Poller};
@@ -61,7 +61,7 @@ fn fetch(ctx: &dyn Ctx, said: &mut Said, app: &App) -> Option<String> {
     };
     said.keyless.remove(&app.package);
     let url = format!("{}{}", app.url.trim_end_matches('/'), ad.endpoint);
-    let (name, value) = adapter::auth(&app.package, &app.header, &key);
+    let (name, value) = adapter::auth(&app.package, &app.header, key.expose());
     let got = Client::new().timeout(HTTP_TIMEOUT).header(name, value).get(&url).and_then(|r| r.ok()).map(|r| r.text());
     match got {
         Ok(text) => {
@@ -144,7 +144,8 @@ fn state_dir_from(knob: Option<String>, systemd: Option<String>) -> Result<PathB
 }
 
 /// Starts `job` on a thread that waits until the returned sender sends. The SDK writes `ready` only after `start` has returned, and the core fails
-/// a service that writes anything before it (`protocol_error`, hobnix/core#1353): so the first `tick`, which comes after `ready`, sends.
+/// a service that writes anything before it (`protocol_error`, hobnix/core#1353). Since 0.14 the SDK holds such a line back, up to a limit; the
+/// poller still waits for the first `tick`, which comes after `ready` and sends, so it does nothing before that.
 fn after_ready(job: impl FnOnce() + Send + 'static) -> mpsc::Sender<()> {
     let (go, wait) = mpsc::channel();
     thread::spawn(move || {
@@ -162,7 +163,7 @@ struct Hub {
 }
 
 impl Service for Hub {
-    fn start(&mut self, _init: &Init, ctx: &dyn Ctx) -> Result<(), String> {
+    fn start(&mut self, _init: &Init, ctx: &dyn Ctx) -> Result<(), Error> {
         let interval = env_f64("HS_MEDIA_POLL_SECONDS", 30.0);
         if interval > 0.0 {
             let state_dir = state_dir_from(std::env::var("HS_MEDIA_STATE_DIR").ok(), std::env::var("STATE_DIRECTORY").ok())?;
@@ -176,8 +177,7 @@ impl Service for Hub {
         if let Some(go) = self.go.take() {
             let _ = go.send(());
         }
-        let h = lock(&self.health);
-        Health { ok: h.ok, text: h.text.clone() }
+        lock(&self.health).clone()
     }
 }
 
@@ -206,19 +206,13 @@ mod tests {
         assert!(state_dir_from(None, None).unwrap_err().contains("STATE_DIRECTORY"));
         assert!(state_dir_from(Some(String::new()), Some(String::new())).is_err());
     }
-    use hobnix_ext_sdk::integrations::Integration;
-    use hobnix_ext_sdk::testing::{Call, FakeCtx};
+    use hobnix_pkg::integrations::Integration;
+    use hobnix_pkg::testing::{Call, FakeCtx};
 
     fn row(package: &str, url: &str) -> Integration {
-        Integration {
-            package: package.into(),
-            integration: "media".into(),
-            source: "recipe".into(),
-            api_url: Some(url.into()),
-            key_file: None,
-            extras: Default::default(),
-            key_header: None,
-        }
+        let mut row = Integration::new(package, "media", "recipe");
+        row.api_url = Some(url.into());
+        row
     }
 
     #[test]

@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use hobnix_ext_sdk::integrations::Integration;
+use hobnix_pkg::integrations::Integration;
 
 use crate::adapter::{adapter, Session};
 
@@ -211,7 +211,7 @@ mod tests {
 
     /// Rows in the text form of the SDK parser; the `key_file` column (`ok` here) is not read by `parse_apps`, as `init.integrations` has none.
     fn rows(text: &str) -> Vec<Integration> {
-        hobnix_ext_sdk::integrations::parse(text)
+        hobnix_pkg::integrations::parse(text)
     }
 
     const J: &str = "jellyfin\tmedia\trecipe\thttp://10.0.0.6:8096\tok\t-\tX-Emby-Token\n";

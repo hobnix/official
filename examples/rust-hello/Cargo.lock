@@ -3,11 +3,20 @@
 version = 4
 
 [[package]]
-name = "hobnix-ext-sdk"
+name = "hobnix-pkg"
 version = "0.1.0"
-source = "git+https://github.com/hobnix/core?tag=v0.13.0-beta.1#7f2356092de31478bfbc7585934df870bcd47bf5"
+source = "git+https://github.com/hobnix/core?tag=v0.14.1#7e5da1c2531869ab0351f0513be3bb31a73fb3a4"
 dependencies = [
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "hobnix-pkg-command"
+version = "0.1.0"
+source = "git+https://github.com/hobnix/core?tag=v0.14.1#7e5da1c2531869ab0351f0513be3bb31a73fb3a4"
+dependencies = [
+ "hobnix-pkg",
  "serde_json",
 ]
 
@@ -45,7 +54,8 @@ dependencies = [
 name = "rust-hello"
 version = "0.1.0"
 dependencies = [
- "hobnix-ext-sdk",
+ "hobnix-pkg",
+ "hobnix-pkg-command",
  "serde_json",
 ]
 
