@@ -26,7 +26,7 @@ MIT in `recipes/`, AGPL-3.0 everywhere else.
 5. A Rust extension or capability ships a static musl program; only the release preparation and the release pull request may carry a program
    (`scripts/binary-check.py`, workflow `rust`). So on `develop` a committed program may be older than a changed source; the release
    preparation, the release pull request and `main` require the two to match. On `develop` a crate pins its SDK crates by git `rev`:
-   `hobnix-ext-sdk` (core 0.13), or the `hobnix-pkg` crates (from core 0.14). Before a release, change each pin to `tag = "vX.Y.Z"` of a core
+   the `hobnix-pkg` crates (from core 0.14). Before a release, change each pin to `tag = "vX.Y.Z"` of a core
    release that has what the crate uses, and update `Cargo.lock` (`cargo update -p <crate>`) in its own pull request into `develop`: the
    core's `repo-check --release` refuses any other pin (ADR 0031), and an unbuilt program, so a package that is not ready for this blocks the
    release of every package. Run `prepare-release` after that merge.

@@ -12,9 +12,10 @@ name = "rust-hello"
 path = "src/main.rs"
 
 [dependencies]
-# The SDK is not published (publish = false in the core's workspace) and the core has no release tag that contains it yet: pinned by commit.
-# Raise `rev` together with Cargo.lock (`cargo update -p hobnix-ext-sdk`) when the core changes the protocol. Move to `tag = "vX.Y.Z"` once a core tag has it.
-hobnix-ext-sdk = { git = "https://github.com/hobnix/core", tag = "v0.13.0-beta.1" }
+# The SDK is not published (publish = false in the core's workspace): the base and the command runner come from a core release by tag.
+# Raise both tags together with Cargo.lock (`cargo update -p hobnix-pkg -p hobnix-pkg-command`) when the core changes the protocol.
+hobnix-pkg = { git = "https://github.com/hobnix/core", tag = "v0.14.1" }
+hobnix-pkg-command = { git = "https://github.com/hobnix/core", tag = "v0.14.1" }
 serde_json = "1"
 
 # Own workspace root: the crate is built by itself, never as part of another folder's workspace.
